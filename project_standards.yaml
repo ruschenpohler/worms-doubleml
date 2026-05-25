@@ -1,0 +1,9 @@
+# project_standards.yaml
+# Single source of truth for project-wide configuration.
+# Agents: change thresholds here, not in source code.
+
+random_seed: 42
+min_observations: 20
+output_dir: output/
+data_dir: data/
+log_file: impl-log.jsonl
