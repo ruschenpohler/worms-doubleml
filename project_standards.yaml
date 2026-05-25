@@ -26,7 +26,8 @@ comparison_group_value: 3     # wgrp == 3 → control
 primary_outcome: infect_heavy_99   # binary, WHO moderate-to-heavy any species
 secondary_outcomes:
   - hb                             # hemoglobin, g/L
-  - attend_99                      # attendance rate (exploratory, excluded from Romano-Wolf)
+# Note: attendance excluded from estimation. See impl-plan §1d for rationale
+# (unconfirmed variable + three-layer filtering problem from Aiken et al. supp.)
 
 # --- Moderators (pre-specified heterogeneity hypotheses) ---
 moderators:
@@ -39,6 +40,14 @@ blp_interaction:
 # --- Controls (nuisance model covariates) ---
 controls_include_moderators: true
 zone_fixed_effects: zoneid
+baseline_symptom_controls:
+  - headache                       # headache_98_45
+  - cough                          # cough_98_46
+  - stomach_pain                   # stomach_98_57
+  - diarrhea                       # diarrhea_98_55
+# Excluded on causal pathway grounds:
+#   worms_seen (worms_99_56) — noisy proxy for infect_intensity_98
+#   blood_in_urine (burine_99_54) — S. haematobium symptom, not endemic here
 spillover_radii_km:
   - 1
   - 2
@@ -72,11 +81,14 @@ cf_model_y: GradientBoostingRegressor
 cf_model_t: GradientBoostingRegressor
 
 # --- Inference ---
+# Romano-Wolf stepdown applied separately for 3 moderators on each outcome
 romano_wolf_family:
   - infect_intensity_98
   - age_98
   - female
-romano_wolf_exclude: attend_99       # reported separately, exploratory
+romano_wolf_outcomes:
+  - infect_heavy_99
+  - hb
 
 # --- Targeting simulation ---
 targeting_coverage_pct: 30           # top 30% by predicted CATE
