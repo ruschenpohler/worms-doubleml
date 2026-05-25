@@ -2,7 +2,9 @@
 agents.md
 impl-log.jsonl
 impl-log.md
+impl-plan.md
 impl-plan_*.md
+reference.md
 
 # generated artefacts
 *.parquet
@@ -17,6 +19,7 @@ __pycache__/
 data/
 output/
 comms/
+docs/
 
 # environment
 .venv/
