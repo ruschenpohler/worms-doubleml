@@ -2,6 +2,7 @@
 Content-addressed storage (CAS) helpers.
 SHA-256 hashing of directories and files for reproducibility.
 """
+
 import hashlib
 from pathlib import Path
 
@@ -34,5 +35,6 @@ def store_artefact(source: Path, store_dir: Path) -> str:
     dest = store_dir / digest
     if not dest.exists():
         import shutil
+
         shutil.copy2(source, dest)
     return digest

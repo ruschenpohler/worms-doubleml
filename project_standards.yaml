@@ -2,8 +2,93 @@
 # Single source of truth for project-wide configuration.
 # Agents: change thresholds here, not in source code.
 
+# --- General ---
 random_seed: 42
 min_observations: 20
 output_dir: output/
 data_dir: data/
 log_file: impl-log.jsonl
+
+# --- Data paths ---
+raw_data_dir: data/raw/
+processed_data_dir: data/processed/
+results_dir: results/
+figures_dir: figures/
+cas_store_dir: cas/store/
+cas_shadow_dir: cas/shadow/
+
+# --- Treatment definition ---
+treatment_group_value: 1      # wgrp == 1 → treated
+partial_group_value: 2        # wgrp == 2 → dropped from main sample
+comparison_group_value: 3     # wgrp == 3 → control
+
+# --- Outcomes ---
+primary_outcome: infect_heavy_99   # binary, WHO moderate-to-heavy any species
+secondary_outcomes:
+  - hb                             # hemoglobin, g/L
+  - attend_99                      # attendance rate (exploratory, excluded from Romano-Wolf)
+
+# --- Moderators (pre-specified heterogeneity hypotheses) ---
+moderators:
+  - infect_intensity_98            # sum(hw98, sm98, al98, tt98), log-transformed
+  - age_98                         # continuous, from age_98_18
+  - female                         # binary, from sex in namelist.dta
+blp_interaction:
+  - age_98:female                  # age × female interaction in BLP
+
+# --- Controls (nuisance model covariates) ---
+controls_include_moderators: true
+zone_fixed_effects: zoneid
+spillover_radii_km:
+  - 1
+  - 2
+  - 3
+  - 4
+  - 5
+  - 6
+  - 36
+
+# --- Exclusion rules ---
+drop_missing_primary_outcome: true
+drop_missing_both_gender: true
+retain_missing_secondary_outcomes: true
+
+# --- Cross-fitting ---
+n_folds: 5
+fold_strategy: GroupKFold            # grouped by schid
+fold_group_col: schid
+
+# --- Nuisance models (ATE & BLP) ---
+treatment_learner: HistGradientBoostingClassifier
+outcome_learner: HistGradientBoostingRegressor
+gbt_max_depth: 4
+gbt_early_stopping: true
+
+# --- Causal forest (CATE) ---
+cf_n_estimators: 4000
+cf_min_samples_leaf: 50              # ~average school size
+cf_inference: blb                    # bootstrap-of-little-bags
+cf_model_y: GradientBoostingRegressor
+cf_model_t: GradientBoostingRegressor
+
+# --- Inference ---
+romano_wolf_family:
+  - infect_intensity_98
+  - age_98
+  - female
+romano_wolf_exclude: attend_99       # reported separately, exploratory
+
+# --- Targeting simulation ---
+targeting_coverage_pct: 30           # top 30% by predicted CATE
+
+# --- Robustness ---
+lee_bounds_enabled: true             # if differential attrition detected
+mixedlm_random_effect: schid         # school random intercepts
+
+# --- Figures ---
+figure_dpi: 300
+
+# --- School-level ---
+n_schools: 75
+school_id_col: schid
+pupil_id_col: pupid

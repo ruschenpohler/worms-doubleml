@@ -2,9 +2,10 @@
 MLflow experiment tracking wrapper.
 Provides a thin, opinionated interface over mlflow.start_run().
 """
-import mlflow
-from pathlib import Path
+
 from typing import Any
+
+import mlflow
 
 
 def start_run(
