@@ -51,6 +51,7 @@ def load_dta(path: Path) -> pd.DataFrame:
 
 EDUC_MAP = {
     100: 0,
+    101: 0,
     102: 1,
     103: 2,
     104: 3,
@@ -426,21 +427,31 @@ def main() -> None:
     )
 
     # Merge schoolvar for zone and spillover controls
+    # Ring counts: spill_0_3km = total schools within 3km
+    # spill_3_6km = total schools in 3-6km ring (= within 6km - within 3km)
+    # Using schT (total) rather than sch1 (group 1 only) because spillover
+    # operates through any treated school in the vicinity.
     sv_cols = [
         "schid",
         "zoneid",
-        "sch1_3km_updated",
-        "sch1_6km_updated",
+        "schT_3km_updated",
+        "schT_6km_updated",
         "wgrp",
     ]
     schoolvar_sub = schoolvar[sv_cols].copy()
     schoolvar_sub.rename(
         columns={
-            "sch1_3km_updated": "spill_1_3km",
-            "sch1_6km_updated": "spill_3_6km",
+            "schT_3km_updated": "spill_0_3km",
+            "schT_6km_updated": "spill_within_6km",
         },
         inplace=True,
     )
+    # Ring count: schools in 3-6km band
+    schoolvar_sub["spill_3_6km"] = (
+        schoolvar_sub["spill_within_6km"] - schoolvar_sub["spill_0_3km"]
+    )
+    # Drop the cumulative 6km column (keep ring counts only)
+    schoolvar_sub.drop(columns=["spill_within_6km"], inplace=True)
 
     pre = len(spine)
     spine = spine.merge(
@@ -450,16 +461,18 @@ def main() -> None:
         f"Row count changed after schoolvar merge: {pre} -> {len(spine)}"
     )
 
-    n_spill_missing = spine["spill_1_3km"].isna().sum()
+    n_spill_missing = spine["spill_0_3km"].isna().sum()
     n_zone_missing = spine["zoneid"].isna().sum()
     log_decision(
         "Merged schoolvar for zone and spillover controls",
-        f"Direct merge on base_schid=schid. "
+        f"Ring counts: spill_0_3km = schT_3km (total within 3km), "
+        f"spill_3_6km = schT_6km - schT_3km (total in 3-6km ring). "
+        f"Using total schools (schT) rather than group 1 only. "
         f"Spillover missing: {n_spill_missing}, zone missing: {n_zone_missing}.",
         {
             "n_spill_missing": int(n_spill_missing),
             "n_zone_missing": int(n_zone_missing),
-            "spill_1_3km_summary": spine["spill_1_3km"].describe().to_dict(),
+            "spill_0_3km_summary": spine["spill_0_3km"].describe().to_dict(),
             "spill_3_6km_summary": spine["spill_3_6km"].describe().to_dict(),
         },
     )
@@ -531,7 +544,7 @@ def main() -> None:
         "grade_retention",
         "parent_educ_avg",
         "zoneid",
-        "spill_1_3km",
+        "spill_0_3km",
         "spill_3_6km",
     ]
     imputation_cols = [
