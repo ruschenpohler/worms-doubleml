@@ -240,11 +240,12 @@ def main() -> None:
     spine["s5_7meduc"] = pd.to_numeric(spine["s5_7meduc"], errors="coerce")
 
     # MICE imputation of base_yob using miceforest
-    impute_cols = ["base_yob", "base_std", "base_schid", "s5_2feduc", "s5_7meduc"]
+    # Parental education EXCLUDED from imputation model per impl-plan:
+    # cross-wave Spearman rho = 0.16 (father), 0.29 (mother) — too low
+    # to treat as stable. Retained as noisy control in outcome models.
+    impute_cols = ["base_yob", "base_std", "base_schid"]
     impute_data = spine[impute_cols].copy()
     impute_data["base_yob"] = pd.to_numeric(impute_data["base_yob"], errors="coerce")
-    impute_data["s5_2feduc"] = pd.to_numeric(impute_data["s5_2feduc"], errors="coerce")
-    impute_data["s5_7meduc"] = pd.to_numeric(impute_data["s5_7meduc"], errors="coerce")
     impute_data["base_schid"] = impute_data["base_schid"].astype("category")
 
     from miceforest import ImputationKernel
@@ -276,7 +277,11 @@ def main() -> None:
     log_decision(
         f"MICE imputation: {n_imputations} datasets via miceforest",
         f"Imputed base_yob using predictors: {impute_cols[1:]}. "
-        f"Excluded from model: treated, psdp_treat_grp, female, age_1998. "
+        f"Parental education EXCLUDED from imputation model: "
+        f"cross-wave Spearman rho = 0.16 (father), 0.29 (mother) "
+        f"too low for stability assumption. "
+        f"Excluded from model: treated, psdp_treat_grp, female, "
+        f"age_1998, s5_2feduc, s5_7meduc. "
         f"Mean imputation std: {spine['base_yob_imputed_std'].mean():.3f}. "
         f"Complete-case analysis column: age_1998_cc.",
         {

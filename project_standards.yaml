@@ -50,11 +50,10 @@ klps3_outcomes:
     missing_codes: [998, 999]
     vocational_codes_prefix: 2
 
-# KLPS-4 (economic returns stage, ~17-22 years post-treatment)
+# KLPS-4 (labor market stage, ~17-22 years post-treatment)
+# Earnings excluded: 75% attrition produces a sample too selected
+# for credible causal inference. See impl-plan Step 1d.
 klps4_outcomes:
-  earnings_klps4:
-    source: s15_2_24aearn_1
-    transform: log1p
   employed_klps4:
     source_selfemp: s15_2_1selfemp
     source_employed: s15_3_1employed
@@ -66,7 +65,6 @@ romano_wolf_families:
     - underweight_klps3
     - educ_klps3
   klps4:
-    - earnings_klps4
     - employed_klps4
 
 # --- Moderators (pre-specified heterogeneity hypotheses) ---
@@ -101,13 +99,14 @@ age_imputation:
   predictors:
     - base_std
     - base_schid
-    - s5_2feduc
-    - s5_7meduc
   excluded_from_model:
     - treated
     - psdp_treat_grp
     - female
     - age_1998
+    - s5_2feduc
+    - s5_7meduc
+  reason_excluded_parental_ed: Cross-wave Spearman rho 0.16 (father) and 0.29 (mother) — too unstable for imputation
   complete_case_robustness: true
 
 # --- Parental education ---
