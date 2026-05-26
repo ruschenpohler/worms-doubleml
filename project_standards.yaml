@@ -18,54 +18,102 @@ cas_store_dir: cas/store/
 cas_shadow_dir: cas/shadow/
 
 # --- Treatment definition ---
-treatment_group_value: 1      # wgrp == 1 → treated
-partial_group_value: 2        # wgrp == 2 → dropped from main sample
-comparison_group_value: 3     # wgrp == 3 → control
+# Primary analysis pools wgrp=1 (full treatment) and wgrp=2 (partial) vs wgrp=3 (control)
+# Test H0: tau_1yr = tau_2yr before interpreting pooled heterogeneity
+treatment_group_values: [1, 2]
+comparison_group_value: 3
+test_pooling_hypothesis: true
+sensitivity_drop_partial: true  # re-run pipeline wgrp=1 vs wgrp=3 only
 
 # --- Outcomes ---
-primary_outcome: infect_heavy_99   # binary, WHO moderate-to-heavy any species
-secondary_outcomes:
-  - hb                             # hemoglobin, g/L
-# Note: attendance excluded from estimation. See impl-plan §1d for rationale
-# (unconfirmed variable + three-layer filtering problem from Aiken et al. supp.)
+# KLPS-3 (human capital stage, ~10-15 years post-treatment)
+klps3_outcomes:
+  bmi_klps3:
+    source_weight: s19_6aweight
+    source_height: s19_5aheight
+    clinical_range: [12, 60]
+  underweight_klps3:
+    threshold: 18.5  # BMI < 18.5
+  educ_klps3:
+    source: s4_8edlevel_1
+    missing_codes: [998, 999]
+    vocational_codes_prefix: 2  # 200+ = vocational
+
+# KLPS-4 (economic returns stage, ~17-22 years post-treatment)
+klps4_outcomes:
+  earnings_klps4:
+    source: s15_2_24aearn_1
+    transform: log1p  # log(1 + earnings) for zeros
+  employed_klps4:
+    source_selfemp: s15_2_1selfemp
+    source_employed: s15_3_1employed
+
+# Romano-Wolf families by wave
+romano_wolf_families:
+  klps3:
+    - bmi_klps3
+    - underweight_klps3
+    - educ_klps3
+  klps4:
+    - earnings_klps4
+    - employed_klps4
 
 # --- Moderators (pre-specified heterogeneity hypotheses) ---
 moderators:
-  - infect_intensity_98            # sum(hw98, sm98, al98, tt98), log-transformed
-  - age_98                         # continuous, from age_98_18
-  - female                         # binary, from sex in namelist.dta
+  - age_1998  # primary: developmental window hypothesis
+  - female    # secondary: differential labor market returns
 blp_interaction:
-  - age_98:female                  # age × female interaction in BLP
+  - age_1998:female  # age x female interaction in BLP
 
 # --- Controls (nuisance model covariates) ---
 controls_include_moderators: true
-zone_fixed_effects: zoneid
-baseline_symptom_controls:
-  - headache                       # headache_98_45
-  - cough                          # cough_98_46
-  - stomach_pain                   # stomach_98_57
-  - diarrhea                       # diarrhea_98_55
-# Excluded on causal pathway grounds:
-#   worms_seen (worms_99_56) — noisy proxy for infect_intensity_98
-#   blood_in_urine (burine_99_54) — S. haematobium symptom, not endemic here
-spillover_radii_km:
-  - 1
-  - 2
-  - 3
-  - 4
-  - 5
-  - 6
-  - 36
+controls:
+  - base_std       # baseline grade (no missingness)
+  - grade_retention  # grade-for-age gap, constructed post-imputation
+  - parent_educ_avg  # avg of s5_2feduc and s5_7meduc, handle single-missing
+  - zoneid         # zone fixed effects from schoolvar.dta
+  - spill_1_3km    # schools within 1-3 km
+  - spill_3_6km    # schools within 3-6 km
+
+# --- Spillover controls ---
+spillover_cols:
+  - spill_1_3km
+  - spill_3_6km
+
+# --- Age imputation (MICE with LightGBM) ---
+age_imputation:
+  target: base_yob
+  engine: miceforest
+  n_imputations: 20
+  predictors:
+    - base_std
+    - base_schid
+    - s5_2feduc  # father's education (11% missing, also imputed)
+    - s5_7meduc  # mother's education (16% missing, also imputed)
+  excluded_from_model:
+    - treated
+    - psdp_treat_grp
+    - female
+    - age_1998
+  complete_case_robustness: true  # re-run pipeline on non-missing base_yob
+
+# --- Parental education ---
+parental_education:
+  father: s5_2feduc
+  mother: s5_7meduc
+  missing_father_pct: 11
+  missing_mother_pct: 16
+  stability_check: true  # compare KLPS-3 vs KLPS-4 reports
 
 # --- Exclusion rules ---
-drop_missing_primary_outcome: true
-drop_missing_both_gender: true
-retain_missing_secondary_outcomes: true
+exclude_gsp: true  # psdp_treat_grp = NA
+flag_pupid_mismatches: true  # 8 boundary mismatches KLPS vs PSDP
+retain_missing_secondary_outcomes: true  # handle outcome-by-outcome
 
 # --- Cross-fitting ---
 n_folds: 5
-fold_strategy: GroupKFold            # grouped by schid
-fold_group_col: schid
+fold_strategy: GroupKFold  # grouped by base_schid
+fold_group_col: base_schid
 
 # --- Nuisance models (ATE & BLP) ---
 treatment_learner: HistGradientBoostingClassifier
@@ -75,32 +123,32 @@ gbt_early_stopping: true
 
 # --- Causal forest (CATE) ---
 cf_n_estimators: 4000
-cf_min_samples_leaf: 50              # ~average school size
-cf_inference: blb                    # bootstrap-of-little-bags
+cf_min_samples_leaf: 50  # ~average school size
+cf_inference: blb  # bootstrap-of-little-bags
 cf_model_y: GradientBoostingRegressor
 cf_model_t: GradientBoostingRegressor
 
-# --- Inference ---
-# Romano-Wolf stepdown applied separately for 3 moderators on each outcome
-romano_wolf_family:
-  - infect_intensity_98
-  - age_98
-  - female
-romano_wolf_outcomes:
-  - infect_heavy_99
-  - hb
-
 # --- Targeting simulation ---
-targeting_coverage_pct: 30           # top 30% by predicted CATE
+targeting_coverage_pct: 30  # top 30% by predicted CATE
 
 # --- Robustness ---
-lee_bounds_enabled: true             # if differential attrition detected
-mixedlm_random_effect: schid         # school random intercepts
+lee_bounds_enabled: true  # standard Lee bounds for all 5 outcomes
+generalized_lee_bounds: true  # conditional on moderators
+mixedlm_random_effect: base_schid  # school random intercepts
+parental_educ_sensitivity: true  # re-run excluding parental edu
+wgrp2_sensitivity: true  # re-run dropping wgrp=2
 
 # --- Figures ---
 figure_dpi: 300
 
 # --- School-level ---
-n_schools: 75
-school_id_col: schid
+n_schools: 75  # 73 with KLPS respondents
+school_id_col: base_schid
 pupil_id_col: pupid
+
+# --- KLPS merge keys ---
+klps_psdps_match_key: base_schid  # direct match to PSDP sch98v1
+klps_treatment_col: psdp_treat_grp
+klps_female_col: base_female
+klps_yob_col: base_yob
+klps_std_col: base_std
