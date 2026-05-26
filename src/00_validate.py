@@ -12,7 +12,6 @@ from pathlib import Path
 
 
 def hash_file(path: Path) -> str:
-    """Return SHA-256 hex digest of a file."""
     h = hashlib.sha256()
     with open(path, "rb") as f:
         for chunk in iter(lambda: f.read(65536), b""):
@@ -33,20 +32,20 @@ def main() -> int:
         manifest: dict[str, str] = json.load(f)
 
     errors = []
-    for filename, expected_hash in manifest.items():
-        filepath = raw_dir / filename
+    for relpath, expected_hash in manifest.items():
+        filepath = raw_dir / relpath
         if not filepath.exists():
-            errors.append(f"MISSING: {filename} not found in {raw_dir}")
+            errors.append(f"MISSING: {relpath} not found in {raw_dir}")
             continue
         actual_hash = hash_file(filepath)
         if actual_hash != expected_hash:
             errors.append(
-                f"MISMATCH: {filename}\n"
+                f"MISMATCH: {relpath}\n"
                 f"  expected: {expected_hash}\n"
                 f"  actual:   {actual_hash}"
             )
         else:
-            print(f"OK: {filename}")
+            print(f"OK: {relpath}")
 
     if errors:
         print("\nValidation FAILED:", file=sys.stderr)

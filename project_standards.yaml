@@ -17,13 +17,24 @@ figures_dir: figures/
 cas_store_dir: cas/store/
 cas_shadow_dir: cas/shadow/
 
+# --- Raw data file paths (relative to data/raw/) ---
+raw_files:
+  klps3_samplemaster: KLPS-3/KLPS3_SampleMaster_PUBLIC_2015-12.dta
+  klps3_imodule: KLPS-3/KLPS3_I-Module_PUBLIC_2022-02.dta
+  klps3_emodule: KLPS-3/KLPS3_E-Plus-Module_PUBLIC_2022-02.dta
+  klps4_samplemaster: KLPS-4/KLPS4_SampleMaster_PUBLIC_2025-12.dta
+  klps4_imodule: KLPS-4/KLPS4_I-Module_PUBLIC_2025-12.dta
+  klps4_emodule: KLPS-4/KLPS4_E-Module_PUBLIC_2025-12.dta
+  psdp_schoolvar: KandM-2004/schoolvar.dta
+  psdp_namelist: KandM-2004/namelist.dta
+
 # --- Treatment definition ---
 # Primary analysis pools wgrp=1 (full treatment) and wgrp=2 (partial) vs wgrp=3 (control)
 # Test H0: tau_1yr = tau_2yr before interpreting pooled heterogeneity
 treatment_group_values: [1, 2]
 comparison_group_value: 3
 test_pooling_hypothesis: true
-sensitivity_drop_partial: true  # re-run pipeline wgrp=1 vs wgrp=3 only
+sensitivity_drop_partial: true
 
 # --- Outcomes ---
 # KLPS-3 (human capital stage, ~10-15 years post-treatment)
@@ -33,17 +44,17 @@ klps3_outcomes:
     source_height: s19_5aheight
     clinical_range: [12, 60]
   underweight_klps3:
-    threshold: 18.5  # BMI < 18.5
+    threshold: 18.5
   educ_klps3:
     source: s4_8edlevel_1
     missing_codes: [998, 999]
-    vocational_codes_prefix: 2  # 200+ = vocational
+    vocational_codes_prefix: 2
 
 # KLPS-4 (economic returns stage, ~17-22 years post-treatment)
 klps4_outcomes:
   earnings_klps4:
     source: s15_2_24aearn_1
-    transform: log1p  # log(1 + earnings) for zeros
+    transform: log1p
   employed_klps4:
     source_selfemp: s15_2_1selfemp
     source_employed: s15_3_1employed
@@ -60,20 +71,22 @@ romano_wolf_families:
 
 # --- Moderators (pre-specified heterogeneity hypotheses) ---
 moderators:
-  - age_1998  # primary: developmental window hypothesis
-  - female    # secondary: differential labor market returns
+  - age_1998
+  - female
 blp_interaction:
-  - age_1998:female  # age x female interaction in BLP
+  - age_1998:female
 
 # --- Controls (nuisance model covariates) ---
 controls_include_moderators: true
 controls:
-  - base_std       # baseline grade (no missingness)
-  - grade_retention  # grade-for-age gap, constructed post-imputation
-  - parent_educ_avg  # avg of s5_2feduc and s5_7meduc, handle single-missing
-  - zoneid         # zone fixed effects from schoolvar.dta
-  - spill_1_3km    # schools within 1-3 km
-  - spill_3_6km    # schools within 3-6 km
+  - age_1998
+  - female
+  - base_std
+  - grade_retention
+  - parent_educ_avg
+  - zoneid
+  - spill_1_3km
+  - spill_3_6km
 
 # --- Spillover controls ---
 spillover_cols:
@@ -88,31 +101,54 @@ age_imputation:
   predictors:
     - base_std
     - base_schid
-    - s5_2feduc  # father's education (11% missing, also imputed)
-    - s5_7meduc  # mother's education (16% missing, also imputed)
+    - s5_2feduc
+    - s5_7meduc
   excluded_from_model:
     - treated
     - psdp_treat_grp
     - female
     - age_1998
-  complete_case_robustness: true  # re-run pipeline on non-missing base_yob
+  complete_case_robustness: true
 
 # --- Parental education ---
 parental_education:
-  father: s5_2feduc
-  mother: s5_7meduc
+  klps3_father: s5_2feduc
+  klps3_mother: s5_7meduc
+  klps4_father: s5_2fatheredu
+  klps4_mother: s5_7motheredu
   missing_father_pct: 11
   missing_mother_pct: 16
-  stability_check: true  # compare KLPS-3 vs KLPS-4 reports
+  stability_check: true
+
+# --- Education code mapping (Kenyan system) ---
+education_mapping:
+  100: 0
+  102: 1
+  103: 2
+  104: 3
+  105: 4
+  106: 5
+  107: 6
+  108: 7
+  109: 8
+  110: 9
+  111: 10
+  112: 11
+  113: 12
+  114: 13
+  115: 14
+  116: 13
+  117: 14
+  200_prefix: any_postsecondary
 
 # --- Exclusion rules ---
-exclude_gsp: true  # psdp_treat_grp = NA
-flag_pupid_mismatches: true  # 8 boundary mismatches KLPS vs PSDP
-retain_missing_secondary_outcomes: true  # handle outcome-by-outcome
+exclude_gsp: true
+flag_pupid_mismatches: true
+retain_missing_secondary_outcomes: true
 
 # --- Cross-fitting ---
 n_folds: 5
-fold_strategy: GroupKFold  # grouped by base_schid
+fold_strategy: GroupKFold
 fold_group_col: base_schid
 
 # --- Nuisance models (ATE & BLP) ---
@@ -123,31 +159,31 @@ gbt_early_stopping: true
 
 # --- Causal forest (CATE) ---
 cf_n_estimators: 4000
-cf_min_samples_leaf: 50  # ~average school size
-cf_inference: blb  # bootstrap-of-little-bags
+cf_min_samples_leaf: 50
+cf_inference: blb
 cf_model_y: GradientBoostingRegressor
 cf_model_t: GradientBoostingRegressor
 
 # --- Targeting simulation ---
-targeting_coverage_pct: 30  # top 30% by predicted CATE
+targeting_coverage_pct: 30
 
 # --- Robustness ---
-lee_bounds_enabled: true  # standard Lee bounds for all 5 outcomes
-generalized_lee_bounds: true  # conditional on moderators
-mixedlm_random_effect: base_schid  # school random intercepts
-parental_educ_sensitivity: true  # re-run excluding parental edu
-wgrp2_sensitivity: true  # re-run dropping wgrp=2
+lee_bounds_enabled: true
+generalized_lee_bounds: true
+mixedlm_random_effect: base_schid
+parental_educ_sensitivity: true
+wgrp2_sensitivity: true
 
 # --- Figures ---
 figure_dpi: 300
 
 # --- School-level ---
-n_schools: 75  # 73 with KLPS respondents
+n_schools: 75
 school_id_col: base_schid
 pupil_id_col: pupid
 
 # --- KLPS merge keys ---
-klps_psdps_match_key: base_schid  # direct match to PSDP sch98v1
+klps_psdps_match_key: base_schid
 klps_treatment_col: psdp_treat_grp
 klps_female_col: base_female
 klps_yob_col: base_yob
