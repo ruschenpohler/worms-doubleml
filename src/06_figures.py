@@ -568,24 +568,44 @@ def fig_mde(data, fig_dir):
     control = bmi[bmi["treated"] == 0]["bmi_klps3"]
 
     sd_bmi = bmi["bmi_klps3"].std()
-    icc = 0.032423
-    n_schools = 73
-    n_total = len(bmi)
-    p_treat = bmi["treated"].mean()
-    avg_cluster = n_total / n_schools
-    deff = 1 + (avg_cluster - 1) * icc
-    n_eff = n_total / deff
 
-    z_alpha = 1.96
-    z_beta = 0.842
+    # Unbalanced CRT design: K1=48 treated schools, K0=25 control
+    school_counts = bmi.groupby(["base_schid", "treated"]).size().reset_index(name="n")
+    K1 = school_counts[school_counts["treated"] == 1]["base_schid"].nunique()
+    K0 = school_counts[school_counts["treated"] == 0]["base_schid"].nunique()
+    m1 = school_counts[school_counts["treated"] == 1]["n"].mean()
+    m0 = school_counts[school_counts["treated"] == 0]["n"].mean()
 
-    se_design = sd_bmi * np.sqrt(deff / (n_total * p_treat * (1 - p_treat)))
-    mde_design = (z_alpha + z_beta) * se_design
-    mde_design_sd = mde_design / sd_bmi
+    from scipy.stats import t as t_dist
+
+    df_clusters = K1 + K0 - 2
+    t_alpha = t_dist.ppf(0.975, df=df_clusters)
+    t_beta = t_dist.ppf(0.80, df=df_clusters)
+    z_sum = t_alpha + t_beta
+
+    # MDE under different ICC assumptions
+    # Var(tau) = sigma^2 * [ (1+(m1-1)*ICC)/(K1*m1) + (1+(m0-1)*ICC)/(K0*m0) ]
+    icc_scenarios = {
+        "Observed (0.023)": 0.023,
+        "Conservative (0.05)": 0.05,
+        "Very conservative (0.08)": 0.08,
+    }
+    mde_values = {}
+    se_values = {}
+    for label, icc in icc_scenarios.items():
+        se = sd_bmi * np.sqrt(
+            (1 + (m1 - 1) * icc) / (K1 * m1) + (1 + (m0 - 1) * icc) / (K0 * m0)
+        )
+        mde = z_sum * se
+        mde_values[label] = mde
+        se_values[label] = se
 
     ate_bmi = data["ate"].loc[data["ate"]["outcome"] == "bmi_klps3", "ate"].values[0]
     se_bmi = data["ate"].loc[data["ate"]["outcome"] == "bmi_klps3", "se"].values[0]
-    mde_observed = (z_alpha + z_beta) * se_bmi
+    mde_observed = z_sum * se_bmi
+
+    # Use the conservative ICC=0.05 as the primary MDE arrow
+    mde_conservative = mde_values["Conservative (0.05)"]
 
     fig, ax = plt.subplots(figsize=(10, 6))
 
@@ -596,7 +616,7 @@ def fig_mde(data, fig_dir):
         density=True,
         alpha=0.4,
         color=PALETTE["control"],
-        label=f"Control (n={len(control):,})",
+        label=f"Control (n={len(control):,}, {K0} schools)",
     )
     ax.hist(
         treated,
@@ -604,71 +624,59 @@ def fig_mde(data, fig_dir):
         density=True,
         alpha=0.4,
         color=PALETTE["treated"],
-        label=f"Treated (n={len(treated):,})",
+        label=f"Treated (n={len(treated):,}, {K1} schools)",
     )
 
     ax.axvline(control.mean(), color=PALETTE["control"], linestyle="--", linewidth=1.5)
     ax.axvline(treated.mean(), color=PALETTE["treated"], linestyle="--", linewidth=1.5)
 
     control_mean = control.mean()
-    y_top = ax.get_ylim()[1] * 0.85
 
-    ax.annotate(
-        "",
-        xy=(control_mean + mde_design, y_top),
-        xytext=(control_mean - mde_design, y_top),
-        arrowprops=dict(arrowstyle="<->", color="#333333", lw=2),
-    )
-    ax.text(
-        control_mean,
-        y_top * 1.06,
-        f"MDE (design-based)\n{mde_design:.2f} BMI points\n({mde_design_sd:.2f} SD)",
-        ha="center",
-        fontsize=9,
-        fontweight="bold",
+    # MDE band (shaded) using conservative ICC
+    ax.axvspan(
+        control_mean - mde_conservative,
+        control_mean + mde_conservative,
+        alpha=0.15,
+        color="#ff7f0e",
+        label=f"MDE (ICC=0.05): [{control_mean - mde_conservative:.1f}, "
+        f"{control_mean + mde_conservative:.1f}]",
     )
 
-    y_mid = ax.get_ylim()[1] * 0.65
-    ax.annotate(
-        "",
-        xy=(control_mean + mde_observed, y_mid),
-        xytext=(control_mean - mde_observed, y_mid),
-        arrowprops=dict(arrowstyle="<->", color="#666666", lw=1.5, linestyle="--"),
-    )
-    ax.text(
-        control_mean,
-        y_mid * 0.94,
-        f"MDE (observed SE)\n{mde_observed:.2f} BMI points",
-        ha="center",
-        fontsize=8,
-        color="#666666",
-    )
-
-    ax.plot(ate_bmi, 0, "v", color="red", markersize=10, zorder=5)
+    # ATE marker
+    ax.plot(ate_bmi, 0, "v", color="red", markersize=12, zorder=5)
+    y_lim = ax.get_ylim()[1]
     ax.text(
         ate_bmi,
-        ax.get_ylim()[1] * 0.02,
+        y_lim * 0.03,
         f"ATE = {ate_bmi:.2f}",
         ha="left",
-        fontsize=9,
+        fontsize=10,
         color="red",
+        fontweight="bold",
     )
 
     ax.set_xlabel("BMI (kg/m$^2$)")
     ax.set_ylabel("Density")
     ax.set_title("BMI distributions with minimum detectable effect and observed ATE")
-    ax.legend(loc="upper right")
+    ax.legend(loc="upper right", fontsize=9)
     ax.spines[["top", "right"]].set_visible(False)
 
-    stats_text = (
-        f"ICC = {icc:.3f}, DEFF = {deff:.1f}, "
-        f"N$_{{eff}}$ = {n_eff:.0f}\n"
-        f"Observed ATE = {ate_bmi:.2f} (SE = {se_bmi:.3f})"
-    )
+    stats_lines = [
+        f"Unbalanced CRT: K$_1$={K1}, K$_0$={K0} schools",
+        f"Observed ATE = {ate_bmi:.2f} (SE = {se_bmi:.3f})",
+        "",
+        "MDE at 80% power (t-dist, df={}):".format(df_clusters),
+    ]
+    for label, mde_val in mde_values.items():
+        stats_lines.append(
+            f"  ICC {label}: {mde_val:.2f} BMI ({mde_val / sd_bmi:.2f} SD)"
+        )
+    stats_lines.append(f"  Post-adjustment: {mde_observed:.2f} BMI")
+
     ax.text(
         0.02,
         0.98,
-        stats_text,
+        "\n".join(stats_lines),
         transform=ax.transAxes,
         fontsize=8,
         va="top",
