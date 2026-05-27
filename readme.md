@@ -149,19 +149,13 @@ The analysis is fully reproducible from the raw data files via `make all` (as of
 
 ## References
 
-Aiken, A. M., Davey, C., Hargreaves, J. R., and Hayes, R. J. (2015). Re-analysis of health and educational impacts of a school-based deworming programme in western Kenya: a pure replication. *International Journal of Epidemiology*, 44(5), 1572-1580.
-
 Athey, S., Tibshirani, J., and Wager, S. (2019). Generalized Random Forests. *Annals of Statistics*, 47(2), 1148-1178.
-
-Baird, S., Hicks, J. H., Kremer, M., and Miguel, E. (2016). Worms at work: Long-run impacts of a child health investment. *Quarterly Journal of Economics*, 131(4), 1637-1680.
 
 Cameron, A. C., Gelbach, J. B., and Miller, D. L. (2008). Bootstrap-Based Improvements for Inference with Clustered Errors. *Review of Economics and Statistics*, 90(3), 414-427.
 
 Chernozhukov, V., Chetverikov, D., Demirer, M., Duflo, E., Hansen, C., and Newey, W. (2017). Double/Debiased/Neyman Machine Learning of Treatment Effects. *American Economic Review: Papers and Proceedings*, 107(5), 261-265.
 
 Chernozhukov, V., Chetverikov, D., Demirer, M., Duflo, E., Hansen, C., Newey, W., and Robins, J. (2018). Double/debiased machine learning for treatment and structural parameters. *The Econometrics Journal*, 21(1), C1-C68.
-
-Davey, C., Aiken, A. M., Hayes, R. J., and Hargreaves, J. R. (2015). Re-analysis of health and educational impacts of a school-based deworming programme in western Kenya: a statistical replication of a cluster quasi-randomized stepped-wedge trial. *International Journal of Epidemiology*, 44(5), 1581-1592.
 
 Hamory, J., Kremer, M., Miguel, E., Moulin, M., and Null, C. (2021). Twenty-year economic impacts of deworming. *Proceedings of the National Academy of Sciences*, 118(14), e2023185118.
 
