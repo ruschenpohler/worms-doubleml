@@ -16,7 +16,7 @@ from pathlib import Path
 import numpy as np
 import pandas as pd
 import yaml
-from doubleml import DoubleMLData, DoubleMLIRM, DoubleMLPLR
+from doubleml import DoubleMLData, DoubleMLPLR
 from scipy import stats
 from sklearn.ensemble import (
     HistGradientBoostingClassifier,
@@ -99,9 +99,13 @@ def main():
     # =================================================================
     log_decision(
         "Starting pooling pre-test: H0: tau_1yr = tau_2yr",
-        "Two DoubleMLIRM models with shared GroupKFold splits. "
+        "Two DoubleMLPLR models with shared GroupKFold splits. "
         "Model A: wgrp=1 vs wgrp=3, Model B: wgrp=2 vs wgrp=3. "
-        "Wald test on stacked orthogonal scores.",
+        "Wald test on stacked orthogonal scores. "
+        "NOTE: DoubleMLIRM produced unstable estimates due to extreme "
+        "propensity scores from school-level treatment assignment "
+        "(916 observations with pscore <0.01 or >0.99). PLR is used "
+        "instead because it does not rely on inverse-propensity weighting.",
         severity=7,
     )
 
@@ -130,9 +134,9 @@ def main():
             x_cols=wgrp1_features,
             force_all_x_finite="allow-nan",
         )
-        dml_1 = DoubleMLIRM(
+        dml_1 = DoubleMLPLR(
             dml_data_1,
-            ml_g=HistGradientBoostingRegressor(max_depth=max_depth, random_state=seed),
+            ml_l=HistGradientBoostingRegressor(max_depth=max_depth, random_state=seed),
             ml_m=HistGradientBoostingClassifier(max_depth=max_depth, random_state=seed),
             n_folds=n_folds,
             draw_sample_splitting=False,
@@ -163,9 +167,9 @@ def main():
             x_cols=wgrp2_features,
             force_all_x_finite="allow-nan",
         )
-        dml_2 = DoubleMLIRM(
+        dml_2 = DoubleMLPLR(
             dml_data_2,
-            ml_g=HistGradientBoostingRegressor(max_depth=max_depth, random_state=seed),
+            ml_l=HistGradientBoostingRegressor(max_depth=max_depth, random_state=seed),
             ml_m=HistGradientBoostingClassifier(max_depth=max_depth, random_state=seed),
             n_folds=n_folds,
             draw_sample_splitting=False,
