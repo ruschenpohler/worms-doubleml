@@ -1,13 +1,14 @@
 """
 Step 6 — Publication-quality figures.
 
-1. Sample flow
-2. Balance table with clustered CIs
-3. Outcome distributions by treatment group
-4. ATE comparison (DoubleML vs naive OLS)
-5. CATE by moderator tercile with BLP caveat note
-6. BLP coefficient plot with raw conditional means
-7. MDE visualization with observed ATE
+New numbering (matches readme order):
+1. Sample flow (bold stage labels, updated text)
+2. Balance check (parental education in years, split axis)
+3. BLP coefficients with Romano-Wolf CIs (2x2 grid)
+4. Outcome distributions by treatment group
+5. ATE comparison (DoubleML vs naive OLS)
+6. MDE visualization with observed ATE (table notes, no legend clutter)
+7. CATE distribution and tercile subgroup means (two separate 2x2 panels)
 """
 
 from pathlib import Path
@@ -25,10 +26,10 @@ OUTCOMES_KLPS4 = ["employed_klps4"]
 ALL_OUTCOMES = OUTCOMES_KLPS3 + OUTCOMES_KLPS4
 
 OUTCOME_LABELS = {
-    "bmi_klps3": "BMI (KLPS-3)",
-    "underweight_klps3": "Underweight (KLPS-3)",
-    "educ_klps3": "Years of education (KLPS-3)",
-    "employed_klps4": "Employment (KLPS-4)",
+    "bmi_klps3": "BMI",
+    "underweight_klps3": "Underweight",
+    "educ_klps3": "Education (years)",
+    "employed_klps4": "Employment",
 }
 
 COEFF_LABELS = {
@@ -36,6 +37,16 @@ COEFF_LABELS = {
     "age_1998": "Age at treatment",
     "female": "Female",
     "age_x_female": "Age x Female",
+}
+
+TITLE_MAP = {
+    1: "Figure 1: Sample flow by treatment group",
+    2: "Figure 2: Covariate balance by treatment group",
+    3: "Figure 3: BLP coefficients with Romano-Wolf adjusted confidence intervals",
+    4: "Figure 4: Outcome distributions by treatment group",
+    5: "Figure 5: ATE estimates under DoubleML and naive OLS",
+    6: "Figure 6: BMI distributions with minimum detectable effect and observed ATE",
+    7: "Figure 7: CATE distributions and subgroup means by moderator tercile",
 }
 
 
@@ -80,13 +91,6 @@ def fig_sample_flow(data, fig_dir):
     klps3 = data["klps3"]
     klps4 = data["klps4"]
 
-    stages = [
-        ("PSDP cohort", len(klps3), None),
-    ]
-    treated_n = int(klps3["treated"].sum())
-    control_n = int((klps3["treated"] == 0).sum())
-    stages.append(("PSDP cohort", len(klps3), None))
-
     bmi_n = klps3.dropna(subset=["bmi_klps3"])
     educ_n = klps3.dropna(subset=["educ_klps3"])
     emp_n = klps4.dropna(subset=["employed_klps4"])
@@ -95,38 +99,44 @@ def fig_sample_flow(data, fig_dir):
         {
             "stage": "PSDP baseline",
             "total": len(klps3),
-            "treated": treated_n,
-            "control": control_n,
+            "treated": int(klps3[klps3["treated"] == 1].shape[0]),
+            "control": int(klps3[klps3["treated"] == 0].shape[0]),
+            "bold": True,
         },
         {
-            "stage": "KLPS-3 respondents",
+            "stage": "KLPS-3 (2011-2014)",
             "total": len(klps3),
             "treated": int(klps3[klps3["treated"] == 1].shape[0]),
             "control": int(klps3[klps3["treated"] == 0].shape[0]),
+            "bold": True,
         },
         {
-            "stage": "  BMI observed",
+            "stage": "  Body mass index",
             "total": len(bmi_n),
             "treated": int(bmi_n[bmi_n["treated"] == 1].shape[0]),
             "control": int(bmi_n[bmi_n["treated"] == 0].shape[0]),
+            "bold": False,
         },
         {
-            "stage": "  Education observed",
+            "stage": "  Education (in years)",
             "total": len(educ_n),
             "treated": int(educ_n[educ_n["treated"] == 1].shape[0]),
             "control": int(educ_n[educ_n["treated"] == 0].shape[0]),
+            "bold": False,
         },
         {
-            "stage": "KLPS-4 respondents",
+            "stage": "KLPS-4 (2017-2022)",
             "total": len(klps4),
             "treated": int(klps4[klps4["treated"] == 1].shape[0]),
             "control": int(klps4[klps4["treated"] == 0].shape[0]),
+            "bold": True,
         },
         {
-            "stage": "  Employment observed",
+            "stage": "  Employment (yes/no)",
             "total": len(emp_n),
             "treated": int(emp_n[emp_n["treated"] == 1].shape[0]),
             "control": int(emp_n[emp_n["treated"] == 0].shape[0]),
+            "bold": False,
         },
     ]
 
@@ -166,12 +176,19 @@ def fig_sample_flow(data, fig_dir):
             color=PALETTE["control"],
         )
 
+    labels = []
+    for row in rows:
+        if row["bold"]:
+            labels.append(r"$\bf{" + row["stage"] + "}$")
+        else:
+            labels.append(row["stage"])
+
     ax.set_yticks(y_positions)
-    ax.set_yticklabels([r["stage"] for r in rows])
+    ax.set_yticklabels(labels)
     ax.invert_yaxis()
     ax.set_xlabel("Respondents")
     ax.legend(loc="lower right")
-    ax.set_title("Sample flow by treatment group")
+    ax.set_title(TITLE_MAP[1], fontsize=12, fontweight="bold")
     ax.spines[["top", "right"]].set_visible(False)
     fig.tight_layout()
     fig.savefig(fig_dir / "fig1_sample_flow.pdf", dpi=300)
@@ -179,10 +196,11 @@ def fig_sample_flow(data, fig_dir):
 
 
 # ------------------------------------------------------------------
-# Figure 2: Balance table with clustered CIs
+# Figure 2: Balance table with clustered CIs (split axis)
 # ------------------------------------------------------------------
 def fig_balance(data, fig_dir):
     klps3 = data["klps3"]
+
     balance_vars = [
         "age_1998",
         "female",
@@ -197,31 +215,40 @@ def fig_balance(data, fig_dir):
         "female": "Female",
         "base_std_ctrl": "Baseline grade",
         "grade_retention": "Grade retention",
-        "parent_educ_avg": "Parental education",
+        "parent_educ_avg": "Parental education (years)",
         "spill_0_3km": "Schools within 3km",
         "spill_3_6km": "Schools 3-6km",
     }
 
-    results = []
+    proportion_vars = {"female", "grade_retention"}
+
+    prop_results = []
+    cont_results = []
+
     for var in balance_vars:
         t = klps3[klps3["treated"] == 1][var].dropna()
         c = klps3[klps3["treated"] == 0][var].dropna()
         se_t = cluster_se(klps3[klps3["treated"] == 1], var, "base_schid")
         se_c = cluster_se(klps3[klps3["treated"] == 0], var, "base_schid")
-        results.append(
-            {
-                "var": var_labels[var],
-                "treated_mean": t.mean(),
-                "treated_se": se_t,
-                "control_mean": c.mean(),
-                "control_se": se_c,
-            }
-        )
+        row = {
+            "var": var_labels[var],
+            "treated_mean": t.mean(),
+            "treated_se": se_t,
+            "control_mean": c.mean(),
+            "control_se": se_c,
+        }
+        if var in proportion_vars:
+            prop_results.append(row)
+        else:
+            cont_results.append(row)
 
-    fig, ax = plt.subplots(figsize=(8, 5))
-    y = np.arange(len(results))
-    for i, r in enumerate(results):
-        ax.errorbar(
+    fig, (ax_cont, ax_prop) = plt.subplots(
+        1, 2, figsize=(10, 5), gridspec_kw={"width_ratios": [3, 2]}
+    )
+
+    y_cont = np.arange(len(cont_results))
+    for i, r in enumerate(cont_results):
+        ax_cont.errorbar(
             r["treated_mean"],
             i + 0.15,
             xerr=1.96 * r["treated_se"],
@@ -230,7 +257,7 @@ def fig_balance(data, fig_dir):
             capsize=3,
             markersize=5,
         )
-        ax.errorbar(
+        ax_cont.errorbar(
             r["control_mean"],
             i - 0.15,
             xerr=1.96 * r["control_se"],
@@ -240,26 +267,134 @@ def fig_balance(data, fig_dir):
             markersize=5,
         )
 
-    ax.set_yticks(y)
-    ax.set_yticklabels([r["var"] for r in results])
-    ax.axvline(0, color="grey", linewidth=0.5, linestyle="--")
-    ax.set_xlabel("Mean (95% CI, school-clustered)")
-    ax.set_title("Balance check: moderator and control means")
-    ax.legend(
+    ax_cont.set_yticks(y_cont)
+    ax_cont.set_yticklabels([r["var"] for r in cont_results])
+    ax_cont.axvline(0, color="grey", linewidth=0.5, linestyle="--")
+    ax_cont.set_xlabel("Mean (95% CI, school-clustered)")
+    ax_cont.spines[["top", "right"]].set_visible(False)
+
+    y_prop = np.arange(len(prop_results))
+    for i, r in enumerate(prop_results):
+        ax_prop.errorbar(
+            r["treated_mean"],
+            i + 0.15,
+            xerr=1.96 * r["treated_se"],
+            fmt="o",
+            color=PALETTE["treated"],
+            capsize=3,
+            markersize=5,
+        )
+        ax_prop.errorbar(
+            r["control_mean"],
+            i - 0.15,
+            xerr=1.96 * r["control_se"],
+            fmt="o",
+            color=PALETTE["control"],
+            capsize=3,
+            markersize=5,
+        )
+
+    ax_prop.set_yticks(y_prop)
+    ax_prop.set_yticklabels([r["var"] for r in prop_results])
+    ax_prop.axvline(0, color="grey", linewidth=0.5, linestyle="--")
+    ax_prop.set_xlabel("Proportion (95% CI)")
+    ax_prop.spines[["top", "right"]].set_visible(False)
+
+    fig.legend(
         handles=[
             plt.Line2D([0], [0], marker="o", color=PALETTE["treated"], label="Treated"),
             plt.Line2D([0], [0], marker="o", color=PALETTE["control"], label="Control"),
         ],
-        loc="lower right",
+        loc="lower center",
+        ncol=2,
+        fontsize=9,
     )
-    ax.spines[["top", "right"]].set_visible(False)
-    fig.tight_layout()
+    fig.suptitle(TITLE_MAP[2], fontsize=12, fontweight="bold")
+    fig.tight_layout(rect=[0, 0.06, 1, 0.95])
     fig.savefig(fig_dir / "fig2_balance.pdf", dpi=300)
     plt.close(fig)
 
 
 # ------------------------------------------------------------------
-# Figure 3: Outcome distributions by treatment group
+# Figure 3: BLP coefficients (2x2 grid)
+# ------------------------------------------------------------------
+def fig_blp_coefficients(data, fig_dir):
+    blp = data["blp"]
+    rw = data["rw"]
+
+    moderators = ["age_1998", "female", "age_x_female"]
+
+    fig, axes = plt.subplots(2, 2, figsize=(12, 10), sharey=True)
+    ax_flat = axes.flatten()
+
+    for idx, outcome in enumerate(ALL_OUTCOMES):
+        ax = ax_flat[idx]
+        sub_blp = blp[blp["outcome"] == outcome]
+
+        for j, mod in enumerate(moderators):
+            row = sub_blp[sub_blp["coefficient"] == mod].iloc[0]
+            rw_row = rw[(rw["outcome"] == outcome) & (rw["coefficient"] == mod)]
+            rw_p = rw_row["rw_adjusted_p"].values[0]
+
+            y_pos = (2 - j) * 2 + 0.2
+            ax.plot(
+                [row["ci_lower"], row["ci_upper"]],
+                [y_pos, y_pos],
+                color="#2171b5",
+                linewidth=1.5,
+                alpha=0.7,
+            )
+            ax.plot(row["estimate"], y_pos, "o", color="#2171b5", markersize=5)
+
+            y_pos_rw = (2 - j) * 2 - 0.2
+            z_rw = stats.norm.ppf(1 - rw_p / 2) if rw_p < 1 else 0
+            if z_rw > 0:
+                rw_half = z_rw * row["se"]
+                rw_lo = row["estimate"] - rw_half
+                rw_hi = row["estimate"] + rw_half
+                ax.plot(
+                    [rw_lo, rw_hi],
+                    [y_pos_rw, y_pos_rw],
+                    color="#cb181d",
+                    linewidth=2.5,
+                    alpha=0.7,
+                )
+            ax.plot(row["estimate"], y_pos_rw, "s", color="#cb181d", markersize=4)
+
+        ax.axvline(0, color="grey", linewidth=0.5, linestyle="--")
+        ax.set_title(OUTCOME_LABELS[outcome], fontsize=11)
+        ax.spines[["top", "right"]].set_visible(False)
+
+    if len(ALL_OUTCOMES) < 4:
+        for idx in range(len(ALL_OUTCOMES), 4):
+            ax_flat[idx].set_visible(False)
+
+    labels_y = []
+    for mod in moderators:
+        labels_y.extend([COEFF_LABELS[mod], ""])
+
+    axes[0, 0].set_yticks(
+        [y for j in range(3) for y in [(2 - j) * 2 + 0.2, (2 - j) * 2 - 0.2]]
+    )
+    axes[0, 0].set_yticklabels(["unadj", "RW"] * 3, fontsize=7)
+
+    fig.legend(
+        handles=[
+            plt.Line2D([0], [0], color="#2171b5", label="95% CI (unadjusted)"),
+            plt.Line2D([0], [0], color="#cb181d", label="95% CI (Romano-Wolf)"),
+        ],
+        loc="lower center",
+        ncol=2,
+        fontsize=10,
+    )
+    fig.suptitle(TITLE_MAP[3], fontsize=13, fontweight="bold")
+    fig.tight_layout(rect=[0, 0.06, 1, 0.95])
+    fig.savefig(fig_dir / "fig3_blp_coefficients.pdf", dpi=300)
+    plt.close(fig)
+
+
+# ------------------------------------------------------------------
+# Figure 4: Outcome distributions by treatment group
 # ------------------------------------------------------------------
 def fig_outcome_distributions(data, fig_dir):
     klps3 = data["klps3"]
@@ -279,7 +414,7 @@ def fig_outcome_distributions(data, fig_dir):
         t = df[df["treated"] == 1][outcome]
         c = df[df["treated"] == 0][outcome]
 
-        if outcome == "underweight_klps3" or outcome == "employed_klps4":
+        if outcome in ("underweight_klps3", "employed_klps4"):
             counts_t = t.value_counts().sort_index()
             counts_c = c.value_counts().sort_index()
             x = sorted(set(counts_t.index) | set(counts_c.index))
@@ -322,18 +457,18 @@ def fig_outcome_distributions(data, fig_dir):
             ax.set_ylabel("Density")
 
         ax.set_xlabel(OUTCOME_LABELS[outcome])
-        ax.set_title(OUTCOME_LABELS[outcome])
+        ax.set_title(OUTCOME_LABELS[outcome], fontsize=11)
         ax.legend(fontsize=8)
         ax.spines[["top", "right"]].set_visible(False)
 
-    fig.suptitle("Outcome distributions by treatment group", fontsize=14, y=1.02)
+    fig.suptitle(TITLE_MAP[4], fontsize=13, fontweight="bold")
     fig.tight_layout()
-    fig.savefig(fig_dir / "fig3_outcome_distributions.pdf", dpi=300)
+    fig.savefig(fig_dir / "fig4_outcome_distributions.pdf", dpi=300)
     plt.close(fig)
 
 
 # ------------------------------------------------------------------
-# Figure 4: ATE comparison (DoubleML vs naive OLS)
+# Figure 5: ATE comparison (DoubleML vs naive OLS)
 # ------------------------------------------------------------------
 def fig_ate_comparison(data, fig_dir):
     ate_df = data["ate"]
@@ -388,178 +523,16 @@ def fig_ate_comparison(data, fig_dir):
     ax.set_yticks(y)
     ax.set_yticklabels([OUTCOME_LABELS[o] for o in merged["outcome"]])
     ax.set_xlabel("Treatment effect estimate (95% CI)")
-    ax.set_title("ATE: DoubleML vs. naive OLS")
     ax.legend(loc="lower right")
     ax.spines[["top", "right"]].set_visible(False)
+    ax.set_title(TITLE_MAP[5], fontsize=12, fontweight="bold")
     fig.tight_layout()
-    fig.savefig(fig_dir / "fig4_ate_comparison.pdf", dpi=300)
+    fig.savefig(fig_dir / "fig5_ate_comparison.pdf", dpi=300)
     plt.close(fig)
 
 
 # ------------------------------------------------------------------
-# Figure 5: CATE by moderator tercile and gender, with BLP caveat
-# ------------------------------------------------------------------
-def fig_cate_tercile(data, fig_dir):
-    klps3 = data["klps3"]
-    klps4 = data["klps4"]
-
-    fig, axes = plt.subplots(2, 4, figsize=(16, 8))
-    blp_caveat = (
-        "Tercile differences are not statistically\n"
-        "distinguishable from zero (BLP p > 0.10\n"
-        "for all moderators, all outcomes)."
-    )
-
-    for idx, outcome in enumerate(ALL_OUTCOMES):
-        df = klps3 if outcome in OUTCOMES_KLPS3 else klps4
-        df = df.dropna(subset=[outcome])
-        cate_df = data["cate"][outcome]
-        merged = cate_df.merge(df[["pupid", "age_1998", "female"]], on="pupid")
-
-        age_terciles = pd.qcut(merged["age_1998"], 3, labels=["Young", "Mid", "Old"])
-        merged["age_tercile"] = age_terciles
-
-        # Panel 1: histogram of CATE
-        ax_hist = axes[0, idx]
-        ax_hist.hist(merged["cate"], bins=40, density=True, alpha=0.7, color="#6baed6")
-        ate_val = data["ate"].loc[data["ate"]["outcome"] == outcome, "ate"].values[0]
-        ax_hist.axvline(ate_val, color="red", linewidth=1.5, linestyle="--")
-        ax_hist.set_xlabel("CATE")
-        ax_hist.set_ylabel("Density")
-        ax_hist.set_title(f"{OUTCOME_LABELS[outcome]}")
-
-        # Panel 2: CATE by age tercile and gender
-        ax_bar = axes[1, idx]
-        groups = merged.groupby(["age_tercile", "female"], observed=False)[
-            "cate"
-        ].mean()
-        labels = []
-        means = []
-        ses = []
-        for terc in ["Young", "Mid", "Old"]:
-            for fem, sex_lab in [(0, "M"), (1, "F")]:
-                key = (terc, fem)
-                if key in groups.index:
-                    sub = merged[
-                        (merged["age_tercile"] == terc) & (merged["female"] == fem)
-                    ]
-                    means.append(sub["cate"].mean())
-                    labels.append(f"{terc}\n{sex_lab}")
-                    se_vals = sub["cate"].std() / np.sqrt(len(sub))
-                    ses.append(se_vals)
-
-        x = np.arange(len(means))
-        colors = ["#2171b5" if "F" in lab else "#cb181d" for lab in labels]
-        ax_bar.bar(x, means, color=colors, alpha=0.7, width=0.6)
-        ax_bar.errorbar(
-            x,
-            means,
-            yerr=[1.96 * s for s in ses],
-            fmt="none",
-            color="black",
-            capsize=3,
-        )
-        ax_bar.set_xticks(x)
-        ax_bar.set_xticklabels(labels, fontsize=7)
-        ax_bar.axhline(0, color="grey", linewidth=0.5, linestyle="--")
-        ax_bar.set_ylabel("Mean CATE")
-
-    fig.text(0.5, 0.01, blp_caveat, ha="center", fontsize=9, style="italic")
-    fig.suptitle("CATE distribution and subgroup means", fontsize=14)
-    fig.tight_layout(rect=[0, 0.05, 1, 0.97])
-    fig.savefig(fig_dir / "fig5_cate_tercile.pdf", dpi=300)
-    plt.close(fig)
-
-
-# ------------------------------------------------------------------
-# Figure 6: BLP coefficient plot with raw conditional means
-# ------------------------------------------------------------------
-def fig_blp_coefficients(data, fig_dir):
-    blp = data["blp"]
-    rw = data["rw"]
-
-    moderators = ["age_1998", "female", "age_x_female"]
-
-    fig, axes = plt.subplots(1, 4, figsize=(16, 5), sharey=True)
-
-    for idx, outcome in enumerate(ALL_OUTCOMES):
-        ax = axes[idx]
-        sub_blp = blp[blp["outcome"] == outcome]
-
-        for j, mod in enumerate(moderators):
-            row = sub_blp[sub_blp["coefficient"] == mod].iloc[0]
-            rw_row = rw[(rw["outcome"] == outcome) & (rw["coefficient"] == mod)]
-            rw_p = rw_row["rw_adjusted_p"].values[0]
-
-            unadj_lo = row["ci_lower"]
-            unadj_hi = row["ci_upper"]
-
-            z_alpha = 1.96
-            rw_z = abs(row["estimate"]) / row["se"] if row["se"] > 0 else 0
-            rw_ci_half = z_alpha * row["se"] * max(1, rw_z / z_alpha) if rw_z > 0 else 0
-            rw_lo = row["estimate"] - rw_ci_half
-            rw_hi = row["estimate"] + rw_ci_half
-
-            y_pos = (2 - j) * 2 + 0.2
-            ax.plot(
-                [unadj_lo, unadj_hi],
-                [y_pos, y_pos],
-                color="#2171b5",
-                linewidth=1.5,
-                alpha=0.7,
-            )
-            ax.plot(row["estimate"], y_pos, "o", color="#2171b5", markersize=5)
-
-            y_pos_rw = (2 - j) * 2 - 0.2
-            z_rw = stats.norm.ppf(1 - rw_p / 2) if rw_p < 1 else 0
-            if z_rw > 0:
-                rw_half = z_rw * row["se"]
-                rw_lo = row["estimate"] - rw_half
-                rw_hi = row["estimate"] + rw_half
-                ax.plot(
-                    [rw_lo, rw_hi],
-                    [y_pos_rw, y_pos_rw],
-                    color="#cb181d",
-                    linewidth=2.5,
-                    alpha=0.7,
-                )
-            ax.plot(row["estimate"], y_pos_rw, "s", color="#cb181d", markersize=4)
-
-        ax.axvline(0, color="grey", linewidth=0.5, linestyle="--")
-        ax.set_title(OUTCOME_LABELS[outcome], fontsize=10)
-        ax.spines[["top", "right"]].set_visible(False)
-
-    labels_y = []
-    for mod in moderators:
-        labels_y.append(COEFF_LABELS[mod])
-    labels_y.append("")
-    labels_y.append("")
-
-    axes[0].set_yticks(
-        [y for j in range(3) for y in [(2 - j) * 2 + 0.2, (2 - j) * 2 - 0.2]]
-    )
-    axes[0].set_yticklabels(["unadj", "RW"] * 3, fontsize=7)
-
-    fig.legend(
-        handles=[
-            plt.Line2D([0], [0], color="#2171b5", label="95% CI (unadjusted)"),
-            plt.Line2D([0], [0], color="#cb181d", label="95% CI (Romano-Wolf)"),
-        ],
-        loc="lower center",
-        ncol=2,
-        fontsize=9,
-    )
-    fig.suptitle(
-        "BLP coefficients: effect heterogeneity by age and gender",
-        fontsize=13,
-    )
-    fig.tight_layout(rect=[0, 0.08, 1, 0.95])
-    fig.savefig(fig_dir / "fig6_blp_coefficients.pdf", dpi=300)
-    plt.close(fig)
-
-
-# ------------------------------------------------------------------
-# Figure 7: MDE visualization
+# Figure 6: MDE visualization (no legend clutter, table notes, correct scale)
 # ------------------------------------------------------------------
 def fig_mde(data, fig_dir):
     klps3 = data["klps3"]
@@ -569,7 +542,6 @@ def fig_mde(data, fig_dir):
 
     sd_bmi = bmi["bmi_klps3"].std()
 
-    # Unbalanced CRT design: K1=48 treated schools, K0=25 control
     school_counts = bmi.groupby(["base_schid", "treated"]).size().reset_index(name="n")
     K1 = school_counts[school_counts["treated"] == 1]["base_schid"].nunique()
     K0 = school_counts[school_counts["treated"] == 0]["base_schid"].nunique()
@@ -583,29 +555,20 @@ def fig_mde(data, fig_dir):
     t_beta = t_dist.ppf(0.80, df=df_clusters)
     z_sum = t_alpha + t_beta
 
-    # MDE under different ICC assumptions
-    # Var(tau) = sigma^2 * [ (1+(m1-1)*ICC)/(K1*m1) + (1+(m0-1)*ICC)/(K0*m0) ]
     icc_scenarios = {
         "Observed (0.023)": 0.023,
         "Conservative (0.05)": 0.05,
         "Very conservative (0.08)": 0.08,
     }
     mde_values = {}
-    se_values = {}
     for label, icc in icc_scenarios.items():
         se = sd_bmi * np.sqrt(
             (1 + (m1 - 1) * icc) / (K1 * m1) + (1 + (m0 - 1) * icc) / (K0 * m0)
         )
         mde = z_sum * se
         mde_values[label] = mde
-        se_values[label] = se
 
     ate_bmi = data["ate"].loc[data["ate"]["outcome"] == "bmi_klps3", "ate"].values[0]
-    se_bmi = data["ate"].loc[data["ate"]["outcome"] == "bmi_klps3", "se"].values[0]
-    mde_observed = z_sum * se_bmi
-
-    # Use the conservative ICC=0.05 as the primary MDE arrow
-    mde_conservative = mde_values["Conservative (0.05)"]
 
     fig, ax = plt.subplots(figsize=(10, 6))
 
@@ -632,61 +595,157 @@ def fig_mde(data, fig_dir):
 
     control_mean = control.mean()
 
-    # MDE band (shaded) using conservative ICC
+    mde_conservative = mde_values["Conservative (0.05)"]
     ax.axvspan(
         control_mean - mde_conservative,
         control_mean + mde_conservative,
         alpha=0.15,
         color="#ff7f0e",
-        label=f"MDE (ICC=0.05): [{control_mean - mde_conservative:.1f}, "
-        f"{control_mean + mde_conservative:.1f}]",
+        label=f"MDE band (ICC=0.05): +/-{mde_conservative:.2f} BMI",
     )
 
-    # ATE marker
-    ax.plot(ate_bmi, 0, "v", color="red", markersize=12, zorder=5)
-    y_lim = ax.get_ylim()[1]
-    ax.text(
-        ate_bmi,
-        y_lim * 0.03,
+    ax.annotate(
         f"ATE = {ate_bmi:.2f}",
-        ha="left",
+        xy=(ate_bmi, 0),
+        xytext=(ate_bmi + 1.5, ax.get_ylim()[1] * 0.15),
         fontsize=10,
         color="red",
         fontweight="bold",
+        arrowprops=dict(arrowstyle="->", color="red", lw=1.5),
     )
 
     ax.set_xlabel("BMI (kg/m$^2$)")
     ax.set_ylabel("Density")
-    ax.set_title("BMI distributions with minimum detectable effect and observed ATE")
-    ax.legend(loc="upper right", fontsize=9)
-    ax.spines[["top", "right"]].set_visible(False)
 
-    stats_lines = [
-        f"Unbalanced CRT: K$_1$={K1}, K$_0$={K0} schools",
-        f"Observed ATE = {ate_bmi:.2f} (SE = {se_bmi:.3f})",
-        "",
-        "MDE at 80% power (t-dist, df={}):".format(df_clusters),
+    notes_lines = [
+        f"Unbalanced CRT: $K_1$={K1} treated schools, $K_0$={K0} control schools. "
+        f"Average cluster size: {m1:.0f} (treated), {m0:.0f} (control).",
+        f"Observed ATE = {ate_bmi:.2f} BMI points. "
+        f"MDE at 80% power ($t$-dist, $df$={df_clusters}):",
     ]
     for label, mde_val in mde_values.items():
-        stats_lines.append(
-            f"  ICC {label}: {mde_val:.2f} BMI ({mde_val / sd_bmi:.2f} SD)"
+        notes_lines.append(
+            f"    ICC {label}: {mde_val:.2f} BMI ({mde_val / sd_bmi:.2f} SD)"
         )
-    stats_lines.append(f"  Post-adjustment: {mde_observed:.2f} BMI")
 
-    ax.text(
-        0.02,
-        0.98,
-        "\n".join(stats_lines),
-        transform=ax.transAxes,
+    fig.text(
+        0.12,
+        0.01,
+        "\n".join(notes_lines),
         fontsize=8,
-        va="top",
-        family="monospace",
-        bbox=dict(boxstyle="round,pad=0.3", facecolor="lightyellow", alpha=0.8),
+        ha="left",
+        va="bottom",
+        style="italic",
     )
 
-    fig.tight_layout()
-    fig.savefig(fig_dir / "fig7_mde_visualization.pdf", dpi=300)
+    ax.legend(loc="upper right", fontsize=9)
+    ax.set_title(TITLE_MAP[6], fontsize=12, fontweight="bold")
+    ax.spines[["top", "right"]].set_visible(False)
+    fig.tight_layout(rect=[0, 0.08, 1, 1])
+    fig.savefig(fig_dir / "fig6_mde_visualization.pdf", dpi=300)
     plt.close(fig)
+
+
+# ------------------------------------------------------------------
+# Figure 7: CATE by moderator tercile (two 2x2 panels)
+# ------------------------------------------------------------------
+def fig_cate_tercile(data, fig_dir):
+    klps3 = data["klps3"]
+    klps4 = data["klps4"]
+
+    bmi_uw_outcomes = ["bmi_klps3", "underweight_klps3"]
+    educ_emp_outcomes = ["educ_klps3", "employed_klps4"]
+
+    blp_caveat = (
+        "Tercile differences are not statistically distinguishable from zero "
+        "(BLP p > 0.10 for all moderators, all outcomes)."
+    )
+
+    def _draw_panel(outcomes, panel_title, filename):
+        fig, axes = plt.subplots(2, 2, figsize=(14, 10))
+
+        for oi, outcome in enumerate(outcomes):
+            df = klps3 if outcome in OUTCOMES_KLPS3 else klps4
+            df = df.dropna(subset=[outcome])
+            cate_df = data["cate"][outcome]
+            merged = cate_df.merge(df[["pupid", "age_1998", "female"]], on="pupid")
+
+            age_terciles = pd.qcut(
+                merged["age_1998"], 3, labels=["Young", "Mid", "Old"]
+            )
+            merged["age_tercile"] = age_terciles
+
+            ax_hist = axes[0, oi]
+            ax_hist.hist(
+                merged["cate"], bins=40, density=True, alpha=0.7, color="#6baed6"
+            )
+            ate_val = (
+                data["ate"].loc[data["ate"]["outcome"] == outcome, "ate"].values[0]
+            )
+            ax_hist.axvline(ate_val, color="red", linewidth=1.5, linestyle="--")
+            ax_hist.set_xlabel("CATE")
+            ax_hist.set_ylabel("Density")
+            ax_hist.set_title(f"{OUTCOME_LABELS[outcome]}")
+
+            ax_bar = axes[1, oi]
+            groups = merged.groupby(["age_tercile", "female"], observed=False)[
+                "cate"
+            ].mean()
+            labels = []
+            means = []
+            ses = []
+            for terc in ["Young", "Mid", "Old"]:
+                for fem, sex_lab in [(0, "M"), (1, "F")]:
+                    key = (terc, fem)
+                    if key in groups.index:
+                        sub = merged[
+                            (merged["age_tercile"] == terc) & (merged["female"] == fem)
+                        ]
+                        means.append(sub["cate"].mean())
+                        labels.append(f"{terc}\n{sex_lab}")
+                        se_vals = sub["cate"].std() / np.sqrt(len(sub))
+                        ses.append(se_vals)
+
+            x = np.arange(len(means))
+            colors = ["#2171b5" if "F" in lab else "#cb181d" for lab in labels]
+            ax_bar.bar(x, means, color=colors, alpha=0.7, width=0.6)
+            ax_bar.errorbar(
+                x,
+                means,
+                yerr=[1.96 * s for s in ses],
+                fmt="none",
+                color="black",
+                capsize=3,
+            )
+            ax_bar.set_xticks(x)
+            ax_bar.set_xticklabels(labels, fontsize=7)
+            ax_bar.axhline(0, color="grey", linewidth=0.5, linestyle="--")
+            ax_bar.set_ylabel("Mean CATE")
+
+        fig.text(
+            0.5,
+            0.01,
+            blp_caveat,
+            ha="center",
+            fontsize=9,
+            style="italic",
+            wrap=True,
+        )
+        fig.suptitle(panel_title, fontsize=13, fontweight="bold")
+        fig.tight_layout(rect=[0, 0.04, 1, 0.97])
+        fig.savefig(fig_dir / filename, dpi=300)
+        plt.close(fig)
+
+    _draw_panel(
+        bmi_uw_outcomes,
+        "Figure 7a: CATE — BMI and underweight",
+        "fig7a_cate_tercile_bmi_uw.pdf",
+    )
+    _draw_panel(
+        educ_emp_outcomes,
+        "Figure 7b: CATE — Education and employment",
+        "fig7b_cate_tercile_educ_emp.pdf",
+    )
 
 
 def main():
@@ -703,20 +762,20 @@ def main():
     print("Figure 2: Balance")
     fig_balance(data, fig_dir)
 
-    print("Figure 3: Outcome distributions")
-    fig_outcome_distributions(data, fig_dir)
-
-    print("Figure 4: ATE comparison")
-    fig_ate_comparison(data, fig_dir)
-
-    print("Figure 5: CATE by tercile")
-    fig_cate_tercile(data, fig_dir)
-
-    print("Figure 6: BLP coefficients")
+    print("Figure 3: BLP coefficients")
     fig_blp_coefficients(data, fig_dir)
 
-    print("Figure 7: MDE visualization")
+    print("Figure 4: Outcome distributions")
+    fig_outcome_distributions(data, fig_dir)
+
+    print("Figure 5: ATE comparison")
+    fig_ate_comparison(data, fig_dir)
+
+    print("Figure 6: MDE visualization")
     fig_mde(data, fig_dir)
+
+    print("Figure 7: CATE by tercile")
+    fig_cate_tercile(data, fig_dir)
 
     print(f"All figures saved to {fig_dir}")
 
