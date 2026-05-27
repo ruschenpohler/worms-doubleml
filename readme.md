@@ -1,6 +1,4 @@
-# `worms-doubleml`
-
-**Who benefits from childhood deworming? Heterogeneous treatment effects on long-run human capital and labor market outcomes.**
+# Who Benefits From Childhood Deworming? Heterogeneous Treatment Effects by Age and Gender on Long-Run Human Capital and Labor Market Outcomes.
 
 ---
 
@@ -28,13 +26,17 @@ The analysis combines two data sources.
 
 **PSDP baseline (1998).** The original trial enrolled 75 schools and approximately 30,000 pupils. Schools were randomized into three groups: full treatment (deworming beginning in 1998), partial treatment (beginning in 1999), and comparison (no treatment during the study period). The baseline data provide school identifiers, treatment assignment, and limited pupil-level covariates.
 
-**Kenya Life Panel Surveys (KLPS).** The KLPS tracked the same cohort into adulthood across two waves: KLPS-3 (2011-2014, approximately 10-15 years post-treatment) and KLPS-4 (2017-2022, approximately 17-22 years post-treatment). The analysis sample consists of the 7,527 PSDP-enrolled pupils with confirmed treatment assignment, excluding the Girl Sponsorship Programme subsample. Attrition to the tracked sample is roughly 33% for nutritional outcomes and employment and 44% for education ([Figure 1](figures/fig1_sample_flow.pdf)).
+**Kenya Life Panel Surveys (KLPS).** The KLPS tracked the same cohort into adulthood across two waves: KLPS-3 (2011-2014, approximately 10-15 years post-treatment) and KLPS-4 (2017-2022, approximately 17-22 years post-treatment). The analysis sample consists of the 7,527 PSDP-enrolled pupils with confirmed treatment assignment, excluding the Girl Sponsorship Programme subsample. Attrition to the tracked sample is roughly 33% for nutritional outcomes and employment and 44% for education (see Figure 1). 
+
+![Figure 1](figures/fig1_sample_flow.png)
 
 **Treatment definition.** The primary analysis pools full-treatment and partial-treatment schools into a single treated group. At a 15-20 year horizon, the one-year difference in treatment timing has plausibly attenuated. The pooled estimand is a convex combination of what we call direct-early effects (full-treatment schools, dewormed from 1998), direct-late effects (partial-treatment schools, dewormed from 1999), and spillover-late effects (partial-treatment pupils who were untreated in 1998 but exposed to neighboring full-treatment schools). A formal test of equality between the full-treatment and partial-treatment ATEs fails to reject at the 5% level for all four outcomes (p = 0.20, 0.48, 0.055, 0.94 for BMI, underweight, education, and employment respectively). The restriction to full-treatment vs. comparison only is reported as a sensitivity check throughout.
 
 **Outcomes.** We examine four outcomes organized by the causal chain we hypothesize: adult BMI and underweight prevalence (KLPS-3, nutritional status), years of schooling completed (KLPS-3, human capital), and employment status (KLPS-4, labor market). Earnings are excluded: the KLPS-4 E-Module has 75% attrition relative to the original PSDP cohort, producing a sample too selected for credible causal inference. Education has 44% missingness on the primary variable, non-differential by treatment (p = 0.85), and results are treated as suggestive rather than definitive.
 
-**Moderators.** Two moderators are pre-specified: age at treatment in 1998 (primary, testing the developmental-window hypothesis) and gender (secondary, testing the labor market margin hypothesis). Age at treatment has 14-21% missingness in year of birth and is imputed via multiple imputation by chained equations (MICE) with 20 imputations, using baseline grade, school-level clustering, and parental education as predictors. A cross-wave consistency check revealed that parental education reports are unstable across KLPS-3 and KLPS-4 (Spearman rho: father 0.16, mother 0.29), so parental education is retained as a noisy control in outcome models but excluded from the imputation model. A complete-case sensitivity check restricting to respondents with non-missing year of birth is reported alongside the primary results. Covariate balance across treatment groups is shown in [Figure 2](figures/fig2_balance.pdf).
+**Moderators.** Two moderators are pre-specified: age at treatment in 1998 (primary, testing the developmental-window hypothesis) and gender (secondary, testing the labor market margin hypothesis). Age at treatment has 14-21% missingness in year of birth and is imputed via multiple imputation by chained equations (MICE) with 20 imputations, using baseline grade, school-level clustering, and parental education as predictors. A cross-wave consistency check revealed that parental education reports are unstable across KLPS-3 and KLPS-4 (Spearman rho: father 0.16, mother 0.29), so parental education is retained as a noisy control in outcome models but excluded from the imputation model. A complete-case sensitivity check restricting to respondents with non-missing year of birth is reported alongside the primary results. Covariate balance across treatment groups is shown in Figure 2 below.
+
+![Figure 2](figures/fig2_balance.png)
 
 ---
 
@@ -70,13 +72,18 @@ With two moderators tested across four outcomes, unadjusted p-values are not inf
 
 ## Results
 
-### Primary results: no evidence of heterogeneity
+### Primary results: No evidence of heterogeneity
 
-No estimated heterogeneity survives Romano-Wolf multiple testing correction. All BLP coefficients have Romano-Wolf adjusted p-values above 0.33. The minimum adjusted p-value across all moderator-outcome combinations is 0.33, for the gender interaction on employment. The developmental-window hypothesis (that younger children at the time of treatment benefited more) is not confirmed by formal inference for any outcome. This is the headline result and it holds across all specifications examined. BLP coefficients with Romano-Wolf adjusted confidence intervals are shown in [Figure 6](figures/fig6_blp_coefficients.pdf).
+No estimated heterogeneity survives Romano-Wolf multiple testing correction. All BLP coefficients have Romano-Wolf adjusted p-values above 0.33. The minimum adjusted p-value across all moderator-outcome combinations is 0.33, for the gender interaction on employment. The developmental-window hypothesis (that younger children at the time of treatment benefited more) is not confirmed by formal inference for any outcome. This is the headline result and it holds across all specifications examined. BLP coefficients with Romano-Wolf adjusted confidence intervals are shown below.
 
-The average treatment effect estimates are themselves informative. BMI shows a pooled ATE of -0.24 points (p = 0.001), running counter to the expected direction of nutritional improvement. Underweight probability shows a pooled ATE of +1.5 percentage points (p = 0.014), also positive, meaning slightly more underweight in the treated group, which is consistent across all treatment contrasts and is a separately puzzling pattern. Employment shows no detectable effect (ATE = +0.010, p = 0.33). Education shows no detectable pooled effect (ATE = +0.002, p = 0.98). Outcome distributions by treatment group are shown in [Figure 3](figures/fig3_outcome_distributions.pdf); ATE estimates under DoubleML and naive OLS are compared in [Figure 4](figures/fig4_ate_comparison.pdf).
+![Figure 6](figures/fig6_blp_coefficients.png)
 
-### Robustness: the null is not a methodological artifact
+The average treatment effect estimates are themselves informative. BMI shows a pooled ATE of -0.24 points (p = 0.001), running counter to the expected direction of nutritional improvement. Underweight probability shows a pooled ATE of +1.5 percentage points (p = 0.014), also positive, meaning slightly more underweight in the treated group, which is consistent across all treatment contrasts and is a separately puzzling pattern. Employment shows no detectable effect (ATE = +0.010, p = 0.33) and education no detectable pooled effect (ATE = +0.002, p = 0.98). Outcome distributions by treatment group are shown in Figure 3 below. ATE estimates under DoubleML and naive OLS are compared in Figure 4.
+
+![Figure 3](figures/fig3_outcome_distributions.png)
+![Figure 4](figures/fig4_ate_comparison.png)
+
+### Robustness: The null is not a methodological artifact
 
 Three features of the data and analysis could in principle produce a null even if the true effect on heterogeneity were positive. We address each in turn.
 
@@ -92,15 +99,19 @@ Three features of the data and analysis could in principle produce a null even i
 
 **School-level hierarchical nuisance models do not change conclusions.** The baseline nuisance models treat schools as exchangeable conditional on covariates. Refitting with school random intercepts via MixedLM and recomputing the orthogonal scores produces directionally consistent but slightly noisier estimates: the BMI ATE attenuates to -0.18 (p = 0.09) under MixedLM nuisance, consistent with the fragility already documented for the pooled BMI result. All BLP coefficients remain null (all p > 0.05). Residual ICC is nearly identical under MixedLM (0.027) and gradient-boosted trees (0.030), confirming that partial pooling provides no material additional absorption of school-level clustering. Substantive conclusions are unchanged.
 
-### Statistical power
+### Statistical power: Limited ability to detect meaningful effects
 
 The school-level minimum detectable effect for this design, with 48 treated schools, 25 comparison schools, average cluster size of 68, and unconditional ICC of 0.023, is 0.41 BMI points (0.13 standard deviations) at 80% power. Under more conservative ICC assumptions of 0.05 and 0.08, the MDE rises to 0.54 and 0.66 BMI points respectively. The 2:1 allocation of schools to treated versus comparison increases the MDE by approximately 15% relative to a balanced design with equal cluster counts per arm: under balanced allocation with 36-37 schools per arm and the same total sample, the MDE at conservative ICC of 0.05 would be approximately 0.45 BMI points rather than 0.54. The observed ATE of -0.24 BMI points falls below the MDE under all but the most favorable assumptions.
 
-The prior expectation was a positive effect: childhood deworming reduces iron malabsorption and caloric competition from worm burden, which should improve nutritional status. Any true effect in the range of approximately [-0.54, +0.54] BMI points is statistically consistent with what we observe under conservative assumptions. The null result on BMI should therefore be read as uninformative about small true effects rather than as evidence against a nutritional pathway. The design was adequate for detecting the large labor market effects documented by Hamory et al. (2021), for which the relevant outcomes have higher signal-to-noise ratios, but not for detecting plausible nutritional effect sizes at a 20-year horizon. The MDE across ICC scenarios alongside the observed ATE is visualized in [Figure 7](figures/fig7_mde_visualization.pdf).
+The prior expectation was a positive effect: childhood deworming reduces iron malabsorption and caloric competition from worm burden, which should improve nutritional status. Any true effect in the range of approximately [-0.54, +0.54] BMI points is statistically consistent with what we observe under conservative assumptions. The null result on BMI should therefore be read as uninformative about small true effects rather than as evidence against a nutritional pathway. The design was adequate for detecting the large labor market effects documented by Hamory et al. (2021), for which the relevant outcomes have higher signal-to-noise ratios, but not for detecting plausible nutritional effect sizes at a 20-year horizon. The MDE across ICC scenarios alongside the observed ATE is visualized in Figure 7 below.
 
-### Directional signals: promising but fragile
+![Figure 7](figures/fig7_mde_visualization.png).
 
-Against the backdrop of the confirmed null, three patterns are directionally consistent with theory across multiple specifications, though none survives formal inference. We report them here as directions for future work rather than findings. CATE distributions by moderator tercile are shown in [Figure 5](figures/fig5_cate_tercile.pdf); note that tercile differences are not statistically distinguishable from zero in formal BLP inference.
+### Directional signals: Few promising results, all fragile
+
+Against the backdrop of the confirmed null, three patterns are directionally consistent with theory across multiple specifications, though none survives formal inference. We report them here as directions for future work rather than findings. CATE distributions by moderator tercile are shown in Figure 5 below. Note that none of the tercile differences are statistically distinguishable from zero in formal BLP inference.
+
+![Figure 5](figures/fig5_cate_tercile.png)
 
 **Gender and employment under the cleanest treatment contrast.** When the analysis is restricted to full-treatment versus comparison schools, the BLP on employment shows a female coefficient of +0.41 (p = 0.03) and an age-times-female interaction of -0.03 (p = 0.03). The direction is consistent with the competing-demands hypothesis: childhood deworming increased employment more for women, concentrated among those who were youngest at treatment. The estimated differential treatment effect by gender is 41 percentage points: conditional on age, childhood deworming is estimated to increase employment by 41 percentage points more for women than for men. Both signals are absent in the pooled sample and rely on 50 schools and 3,406 employment observations, roughly two-thirds of the pooled sample, making these specification-dependent results. They do not warrant a policy recommendation on their own, but they suggest that a larger, better-powered study examining gender-differentiated labor market effects would be worth running.
 
@@ -124,7 +135,7 @@ The KLPS was designed primarily to measure long-run economic outcomes, not to se
 
 **Intergenerational effects.** The KLPS-4 Kids modules contain cognitive assessments, teacher evaluations, and birthweight data for the children of original PSDP respondents. These open a natural extension to intergenerational effects: did childhood deworming affect the next generation? The heterogeneity framework developed here is directly suited to that question: who among the original respondents transmitted the largest gains to the next generation, and whether the age-at-treatment gradient persists into the intergenerational channel.
 
-**Bayesian hierarchical nuisance models.** The MixedLM sensitivity check in this analysis asks whether partial pooling across schools in the nuisance functions changes the substantive conclusions. A natural next step replaces REML random intercepts with a fully Bayesian hierarchical specification, propagating school-level uncertainty through the orthogonal scores and into the BLP standard errors. This connects to the partial pooling framework in the companion [bayesian-segmentation](https://github.com/ruschenpohler/bayesian-segmentation) repository, where hierarchical shrinkage is applied to a related heterogeneity problem in a consumer segmentation context.
+**Bayesian hierarchical nuisance models.** The MixedLM sensitivity check in this analysis asks whether partial pooling across schools in the nuisance functions changes the substantive conclusions. A natural next step replaces REML random intercepts with a fully Bayesian hierarchical specification, propagating school-level uncertainty through the orthogonal scores and into the BLP standard errors. This connects to the partial pooling framework developed in a companion repository (see: [bayesian-segmentation](https://github.com/ruschenpohler/bayesian-segmentation)). where hierarchical shrinkage is applied to a related heterogeneity problem in a consumer segmentation context.
 
 ---
 
@@ -132,17 +143,7 @@ The KLPS was designed primarily to measure long-run economic outcomes, not to se
 
 All raw data files are verified against SHA-256 hashes before any analysis runs. Every dataset transformation is logged with a content-addressed hash. Every specification choice is recorded in `impl-log.jsonl` before the relevant analysis runs, providing a verifiable audit trail rather than a reconstruction from memory. Before fitting any estimator to the data, nuisance model hyperparameters were set and logged; no choices were made after seeing results.
 
-The analysis is fully reproducible from the raw data files via `make all`. Dependencies are pinned in `pyproject.toml` and managed via `uv`.
-
-**Data citation:** Miguel, Edward; Kremer, Michael, 2014, "Replication data for: Worms: Identifying Impacts on Education and Health in the Presence of Treatment Externalities", https://doi.org/10.7910/DVN/28038, Harvard Dataverse, V2.
-
----
-
-## Related work
-
-For the Bayesian hierarchical extension of the heterogeneity analysis developed here, and for a worked treatment of partial pooling across groups in a related context, see the Extensions section and the companion [bayesian-segmentation](https://github.com/ruschenpohler/bayesian-segmentation) repository.
-
-A related project applying double/debiased ML to the Kenya Life Panel Survey to estimate long-run treatment effects with heterogeneity by age at treatment and gender is available at [REPO LINK].
+The analysis is fully reproducible from the raw data files via `make all` (as of 05/28/2026). Dependencies are pinned in `pyproject.toml` and managed via `uv` for easy replication.
 
 ---
 
