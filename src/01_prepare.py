@@ -415,19 +415,23 @@ def main() -> None:
     # Expected grade: age_1998 - 6 (Kenyan school starting age)
     spine["grade_retention"] = (spine["age_1998"] - 6) - spine["base_std_ctrl"]
 
-    # Parental education: average of available parent's education
-    spine["parent_educ_avg"] = spine[["s5_2feduc", "s5_7meduc"]].mean(
+    # Parental education: convert raw codes to years, then average
+    spine["father_educ_yrs"] = spine["s5_2feduc"].apply(map_education)
+    spine["mother_educ_yrs"] = spine["s5_7meduc"].apply(map_education)
+    spine["parent_educ_avg"] = spine[["father_educ_yrs", "mother_educ_yrs"]].mean(
         axis=1, skipna=True
     )
     n_both_missing = spine[["s5_2feduc", "s5_7meduc"]].isna().all(axis=1).sum()
     log_decision(
         "Constructed grade_retention and parent_educ_avg",
         f"grade_retention = (age_1998 - 6) - base_std. "
-        f"parent_educ_avg = mean of available parental education. "
+        f"parent_educ_avg = mean of available parental education (converted from "
+        f"raw codes to years via EDUC_MAP before averaging). "
         f"Both parents missing: {n_both_missing}/{len(spine)}.",
         {
             "n_both_missing": int(n_both_missing),
             "grade_retention_summary": spine["grade_retention"].describe().to_dict(),
+            "parent_educ_avg_summary": spine["parent_educ_avg"].describe().to_dict(),
         },
     )
 
