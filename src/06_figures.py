@@ -260,70 +260,95 @@ def fig_balance(data, fig_dir):
 
 
 # ------------------------------------------------------------------
-# Figure 3: BLP coefficients (2x2 grid)
+# Figure 3: BLP coefficients — single panel, all outcomes
 # ------------------------------------------------------------------
 def fig_blp_coefficients(data, fig_dir):
     blp = data["blp"]
     rw = data["rw"]
 
     moderators = ["age_1998", "female", "age_x_female"]
+    mod_short = {"age_1998": "Age", "female": "Female", "age_x_female": "Age×Female"}
+    xlim = (-1.5, 1.0)
 
-    fig, axes = plt.subplots(2, 2, figsize=(12, 10), sharey=True)
-    ax_flat = axes.flatten()
+    fig, ax = plt.subplots(figsize=(8, 10))
 
-    for idx, outcome in enumerate(ALL_OUTCOMES):
-        ax = ax_flat[idx]
+    ytick_pos = []
+    ytick_lab = []
+    outcome_labels_y = []
+
+    for oi, outcome in enumerate(ALL_OUTCOMES):
         sub_blp = blp[blp["outcome"] == outcome]
+        base_y = oi * 7
+
+        outcome_center = base_y + 2.5
+        outcome_labels_y.append(outcome_center)
 
         for j, mod in enumerate(moderators):
             row = sub_blp[sub_blp["coefficient"] == mod].iloc[0]
             rw_row = rw[(rw["outcome"] == outcome) & (rw["coefficient"] == mod)]
             rw_p = rw_row["rw_adjusted_p"].values[0]
 
-            y_unadj = (2 - j) * 3 + 1.0
-            y_rw = (2 - j) * 3 - 1.0
+            y_unadj = base_y + (2 - j) * 2 + 0.3
+            y_rw = base_y + (2 - j) * 2 - 0.3
 
+            ci_lo = max(row["ci_lower"], xlim[0])
+            ci_hi = min(row["ci_upper"], xlim[1])
+            clipped_left = row["ci_lower"] < xlim[0]
             ax.plot(
-                [row["ci_lower"], row["ci_upper"]],
+                [ci_lo, ci_hi],
                 [y_unadj, y_unadj],
                 color="#2171b5",
                 linewidth=1.5,
                 alpha=0.7,
+                solid_capstyle="butt",
             )
+            if clipped_left:
+                ax.plot(ci_lo, y_unadj, "<", color="#2171b5", markersize=4, alpha=0.7)
             ax.plot(row["estimate"], y_unadj, "o", color="#2171b5", markersize=5)
 
             z_rw = stats.norm.ppf(1 - rw_p / 2) if rw_p < 1 else 0
             if z_rw > 0:
                 rw_half = z_rw * row["se"]
-                rw_lo = row["estimate"] - rw_half
-                rw_hi = row["estimate"] + rw_half
+                rw_lo_raw = row["estimate"] - rw_half
+                rw_hi_raw = row["estimate"] + rw_half
+                rw_lo = max(rw_lo_raw, xlim[0])
+                rw_hi = min(rw_hi_raw, xlim[1])
+                rw_clipped_left = rw_lo_raw < xlim[0]
                 ax.plot(
                     [rw_lo, rw_hi],
                     [y_rw, y_rw],
                     color="#cb181d",
                     linewidth=2.5,
                     alpha=0.7,
+                    solid_capstyle="butt",
                 )
+                if rw_clipped_left:
+                    ax.plot(rw_lo, y_rw, "<", color="#cb181d", markersize=4, alpha=0.7)
             ax.plot(row["estimate"], y_rw, "s", color="#cb181d", markersize=4)
 
-        ax.axvline(0, color="grey", linewidth=0.5, linestyle="--")
-        ax.set_title(OUTCOME_LABELS[outcome], fontsize=11)
-        ax.spines[["top", "right"]].set_visible(False)
+            ytick_pos.append(y_unadj)
+            ytick_lab.append(f"{mod_short[mod]} (unadj)")
+            ytick_pos.append(y_rw)
+            ytick_lab.append(f"{mod_short[mod]} (RW)")
 
-    if len(ALL_OUTCOMES) < 4:
-        for idx in range(len(ALL_OUTCOMES), 4):
-            ax_flat[idx].set_visible(False)
+    ax.axvline(0, color="grey", linewidth=0.5, linestyle="--")
+    ax.axhline(6.5, color="grey", linewidth=0.3, linestyle=":")
+    ax.axhline(13.5, color="grey", linewidth=0.3, linestyle=":")
 
-    ytick_pos = []
-    ytick_lab = []
-    for j, mod in enumerate(moderators):
-        ytick_pos.append((2 - j) * 3 + 1.0)
-        ytick_lab.append(f"{COEFF_LABELS[mod]} (unadj)")
-        ytick_pos.append((2 - j) * 3 - 1.0)
-        ytick_lab.append(f"{COEFF_LABELS[mod]} (RW)")
+    ax.set_yticks(ytick_pos)
+    ax.set_yticklabels(ytick_lab, fontsize=8)
+    ax.set_xlim(xlim)
 
-    axes[0, 0].set_yticks(ytick_pos)
-    axes[0, 0].set_yticklabels(ytick_lab, fontsize=7)
+    for oi, outcome in enumerate(ALL_OUTCOMES):
+        ax.text(
+            xlim[0] + 0.02,
+            outcome_labels_y[oi],
+            OUTCOME_LABELS[outcome],
+            fontsize=11,
+            fontweight="bold",
+            va="center",
+            ha="left",
+        )
 
     fig.legend(
         handles=[
@@ -334,8 +359,10 @@ def fig_blp_coefficients(data, fig_dir):
         ncol=2,
         fontsize=10,
     )
-    fig.suptitle(TITLE_MAP[3], fontsize=13, fontweight="bold")
-    fig.tight_layout(rect=[0, 0.06, 1, 0.95])
+    ax.set_xlabel("Coefficient estimate")
+    ax.set_title(TITLE_MAP[3], fontsize=13, fontweight="bold")
+    ax.spines[["top", "right"]].set_visible(False)
+    fig.tight_layout(rect=[0.15, 0.04, 1, 1])
     fig.savefig(fig_dir / "fig3_blp_coefficients.pdf", dpi=300)
     plt.close(fig)
 
@@ -382,7 +409,6 @@ def fig_outcome_distributions(data, fig_dir):
                 alpha=0.8,
                 label="Control",
             )
-            ax.set_ylabel("Proportion")
             ax.set_xticks(x)
         else:
             ax.hist(
@@ -401,10 +427,8 @@ def fig_outcome_distributions(data, fig_dir):
                 color=PALETTE["control"],
                 label="Control",
             )
-            ax.set_ylabel("Density")
 
-        ax.set_xlabel(OUTCOME_LABELS[outcome])
-        ax.set_title(OUTCOME_LABELS[outcome], fontsize=11)
+        ax.set_xlabel(OUTCOME_LABELS[outcome], fontsize=11)
         ax.legend(fontsize=8)
         ax.spines[["top", "right"]].set_visible(False)
 
@@ -567,7 +591,8 @@ def fig_mde(data, fig_dir):
     notes_lines = [
         f"Unbalanced CRT: $K_1$={K1} treated schools, $K_0$={K0} control schools; "
         f"average cluster size {m1:.0f} (treated), {m0:.0f} (control). "
-        f"Observed ATE = {ate_bmi:.2f} BMI points. "
+        f"Observed ATE = {ate_bmi:.2f} BMI points "
+        f"(control mean = {control_mean:.1f}, treated mean = {treated.mean():.1f}). "
         f"MDE at 80% power ($t$-dist, $df$={df_clusters}): "
     ]
     mde_parts = []
@@ -624,15 +649,20 @@ def fig_cate_tercile(data, fig_dir):
 
             ax_hist = axes[0, oi]
             ax_hist.hist(
-                merged["cate"], bins=40, density=True, alpha=0.7, color="#6baed6"
+                merged["cate"],
+                bins=40,
+                density=True,
+                alpha=0.7,
+                color="#6baed6",
             )
             ate_val = (
                 data["ate"].loc[data["ate"]["outcome"] == outcome, "ate"].values[0]
             )
             ax_hist.axvline(ate_val, color="red", linewidth=1.5, linestyle="--")
-            ax_hist.set_xlabel("CATE")
-            ax_hist.set_ylabel("Density")
-            ax_hist.set_title(f"{OUTCOME_LABELS[outcome]}")
+            ax_hist.set_xlabel("CATE", fontsize=11)
+            ax_hist.set_ylabel("Density", fontsize=11)
+            ax_hist.set_title(OUTCOME_LABELS[outcome], fontsize=13, fontweight="bold")
+            ax_hist.tick_params(labelsize=10)
 
             ax_bar = axes[1, oi]
             groups = merged.groupby(["age_tercile", "female"], observed=False)[
@@ -665,16 +695,21 @@ def fig_cate_tercile(data, fig_dir):
                 capsize=3,
             )
             ax_bar.set_xticks(x)
-            ax_bar.set_xticklabels(labels, fontsize=7)
+            ax_bar.set_xticklabels(labels, fontsize=10)
             ax_bar.axhline(0, color="grey", linewidth=0.5, linestyle="--")
-            ax_bar.set_ylabel("Mean CATE")
+            ax_bar.set_ylabel("Mean CATE", fontsize=11)
+            ax_bar.tick_params(labelsize=10)
+            ax_bar.set_xlabel(
+                f"{OUTCOME_LABELS[outcome]} — CATE by tercile",
+                fontsize=11,
+            )
 
         fig.text(
             0.5,
             0.01,
             blp_caveat,
             ha="center",
-            fontsize=10,
+            fontsize=11,
             style="italic",
             wrap=True,
         )
