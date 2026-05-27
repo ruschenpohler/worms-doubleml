@@ -1,4 +1,4 @@
-# `worms-doubleml`
+# Who Benefits from Childhood Deworming? Heterogeneous Treatment Effects on Long-Run Human Capital and Labor Market Outcomes
 
 **Who benefits from childhood deworming? Heterogeneous treatment effects on long-run human capital and labor market outcomes.**
 
@@ -6,7 +6,7 @@
 
 ## Abstract
 
-School-based deworming programs have reached hundreds of millions of children across sub-Saharan Africa and South Asia, scaling up from a landmark randomized trial in Kenya. Whether benefits from these programs are concentrated among specific groups (younger children who were treated during more critical developmental windows, or girls who face steeper labor market barriers) has direct implications for program design. We apply double/debiased machine learning (DoubleML) and causal forest estimation to the Kenya Life Panel Survey follow-up of the Miguel and Kremer (2004) deworming trial, estimating long-run effects of childhood deworming on adult BMI, underweight prevalence, educational attainment, and employment, and characterizing heterogeneity by age at treatment and gender. The developmental-window hypothesis is not confirmed by formal inference: no estimated heterogeneity survives Romano-Wolf multiple testing correction (minimum adjusted p = 0.33). The null is not an attrition artifact (Lee bounds for BMI: [-0.10, +0.08]) and is not explained by methodological choices. The design was underpowered for plausible nutritional effect sizes at a 20-year horizon. Against this primary null, we document three directionally consistent but fragile signals that motivate further investigation at scale.
+School-based deworming programs have reached hundreds of millions of children across sub-Saharan Africa and South Asia, scaling up from a landmark randomized trial in Kenya. Whether benefits from these programs are concentrated among specific groups (younger children who were treated during more critical developmental windows, or girls who face steeper labor market barriers) has direct implications for program design. We apply double/debiased machine learning (DoubleML) and causal forest estimation to the Kenya Life Panel Survey follow-up of the Miguel and Kremer (2004) deworming trial, estimating long-run effects of childhood deworming on adult BMI, the prevalence of being underweight, educational attainment, and employment, and characterizing heterogeneity by the child's age at treatment and their gender. We do not find formal evidence that confirms the developmental-window hypothesis: no estimated heterogeneity survives Romano-Wolf multiple testing correction (minimum adjusted p = 0.33). We show that the null is unlikely to be an attrition artifact or explained by methodological choices. Instead, the design is underpowered for plausible nutritional effect sizes at a 20-year horizon. Against this primary null, we document three directionally consistent but fragile findings that motivate further investigation at scale.
 
 ---
 
