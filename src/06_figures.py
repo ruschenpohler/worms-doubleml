@@ -1,7 +1,4 @@
 """
-Step 6 — Publication-quality figures.
-
-New numbering (matches readme order):
 1. Sample flow (bold stage labels, updated text)
 2. Balance check (parental education in years, split axis)
 3. BLP coefficients with Romano-Wolf CIs (2x2 grid)
@@ -13,7 +10,9 @@ New numbering (matches readme order):
 
 from pathlib import Path
 
+import matplotlib
 import matplotlib.pyplot as plt
+import matplotlib.transforms
 import numpy as np
 import pandas as pd
 import statsmodels.api as sm
@@ -327,7 +326,7 @@ def fig_blp_coefficients(data, fig_dir):
             ax.plot(row["estimate"], y_rw, "s", color="#cb181d", markersize=4)
 
             ytick_pos.append(y_unadj)
-            ytick_lab.append(f"{mod_short[mod]} (unadj)")
+            ytick_lab.append(f"{mod_short[mod]} (unadj.)")
             ytick_pos.append(y_rw)
             ytick_lab.append(f"{mod_short[mod]} (RW)")
 
@@ -340,14 +339,17 @@ def fig_blp_coefficients(data, fig_dir):
     ax.set_xlim(xlim)
 
     for oi, outcome in enumerate(ALL_OUTCOMES):
-        ax.text(
-            xlim[0] + 0.02,
-            outcome_labels_y[oi],
+        ax.annotate(
             OUTCOME_LABELS[outcome],
-            fontsize=11,
-            fontweight="bold",
+            xy=(-0.38, outcome_labels_y[oi]),
+            xycoords=matplotlib.transforms.blended_transform_factory(
+                ax.transAxes, ax.transData
+            ),
+            fontsize=10,
+            fontweight="normal",
             va="center",
             ha="left",
+            annotation_clip=False,
         )
 
     fig.legend(
@@ -362,7 +364,7 @@ def fig_blp_coefficients(data, fig_dir):
     ax.set_xlabel("Coefficient estimate")
     ax.set_title(TITLE_MAP[3], fontsize=13, fontweight="bold")
     ax.spines[["top", "right"]].set_visible(False)
-    fig.tight_layout(rect=[0.15, 0.04, 1, 1])
+    fig.tight_layout(rect=[0.22, 0.04, 1, 1])
     fig.savefig(fig_dir / "fig3_blp_coefficients.pdf", dpi=300)
     plt.close(fig)
 
