@@ -10,9 +10,7 @@
 
 from pathlib import Path
 
-import matplotlib
 import matplotlib.pyplot as plt
-import matplotlib.transforms
 import numpy as np
 import pandas as pd
 import statsmodels.api as sm
@@ -269,6 +267,14 @@ def fig_blp_coefficients(data, fig_dir):
     mod_short = {"age_1998": "Age", "female": "Female", "age_x_female": "Age×Female"}
     xlim = (-1.5, 1.0)
 
+    # Labels used only in this figure — override the module-level dict locally
+    fig3_labels = {
+        "employed_klps4": "Employment (yes/no)",
+        "educ_klps3": "Education (years)",
+        "underweight_klps3": "Underweight (yes/no)",
+        "bmi_klps3": "BMI",
+    }
+
     fig, ax = plt.subplots(figsize=(8, 10))
 
     ytick_pos = []
@@ -338,20 +344,6 @@ def fig_blp_coefficients(data, fig_dir):
     ax.set_yticklabels(ytick_lab, fontsize=8)
     ax.set_xlim(xlim)
 
-    for oi, outcome in enumerate(ALL_OUTCOMES):
-        ax.annotate(
-            OUTCOME_LABELS[outcome],
-            xy=(-0.38, outcome_labels_y[oi]),
-            xycoords=matplotlib.transforms.blended_transform_factory(
-                ax.transAxes, ax.transData
-            ),
-            fontsize=10,
-            fontweight="normal",
-            va="center",
-            ha="left",
-            annotation_clip=False,
-        )
-
     fig.legend(
         handles=[
             plt.Line2D([0], [0], color="#2171b5", label="95% CI (unadjusted)"),
@@ -364,7 +356,26 @@ def fig_blp_coefficients(data, fig_dir):
     ax.set_xlabel("Coefficient estimate")
     ax.set_title(TITLE_MAP[3], fontsize=13, fontweight="bold")
     ax.spines[["top", "right"]].set_visible(False)
-    fig.tight_layout(rect=[0.22, 0.04, 1, 1])
+
+    # Finalise layout before querying pixel positions
+    fig.tight_layout(rect=[0.15, 0.04, 1, 1])
+    fig.canvas.draw()
+
+    # Chain: data coords -> display pixels -> figure fraction
+    data_to_fig = ax.transData + fig.transFigure.inverted()
+
+    for oi, outcome in enumerate(ALL_OUTCOMES):
+        _, y_fig = data_to_fig.transform((0, outcome_labels_y[oi]))
+        fig.text(
+            0.01,  # hard left in figure-fraction space
+            y_fig,
+            fig3_labels[outcome],
+            fontsize=10,
+            fontweight="normal",
+            va="center",
+            ha="left",
+        )
+
     fig.savefig(fig_dir / "fig3_blp_coefficients.pdf", dpi=300)
     plt.close(fig)
 
@@ -648,6 +659,12 @@ def fig_cate_tercile(data, fig_dir):
                 merged["age_1998"], 3, labels=["Young", "Mid", "Old"]
             )
             merged["age_tercile"] = age_terciles
+            bins = pd.qcut(merged["age_1998"], 3, retbins=True)[1]
+            terc_labels = {
+                "Young": f"{bins[0]:.0f}-{bins[1]:.0f}",
+                "Mid": f"{bins[1]:.0f}-{bins[2]:.0f}",
+                "Old": f"{bins[2]:.0f}-{bins[3]:.0f}",
+            }
 
             ax_hist = axes[0, oi]
             ax_hist.hist(
@@ -681,7 +698,7 @@ def fig_cate_tercile(data, fig_dir):
                             (merged["age_tercile"] == terc) & (merged["female"] == fem)
                         ]
                         means.append(sub["cate"].mean())
-                        labels.append(f"{terc}\n{sex_lab}")
+                        labels.append(f"{terc_labels[terc]}\n{sex_lab}")
                         se_vals = sub["cate"].std() / np.sqrt(len(sub))
                         ses.append(se_vals)
 
