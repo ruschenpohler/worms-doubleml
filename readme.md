@@ -109,31 +109,31 @@ The prior expectation was a positive effect: childhood deworming reduces iron ma
 
 ![Figure 6](figures/fig6_mde_visualization.png)
 
-### Directional signals: Few promising results, all fragile
+### Directional findings: Few promising results, all fragile
 
-Against the backdrop of the confirmed null, three patterns are directionally consistent with theory across multiple specifications, though none survives formal inference. We report them here as directions for future work rather than findings. CATE distributions by moderator tercile are shown in Figures 7a and 7b below. Note that none of the tercile differences are statistically distinguishable from zero in formal BLP inference.
-
-![Figure 7a](figures/fig7a_cate_tercile_bmi_uw.png)
-![Figure 7b](figures/fig7b_cate_tercile_educ_emp.png)
+Against the backdrop of the confirmed null, three patterns are directionally consistent with theory across multiple specifications, though none survives formal inference. We report them here as directions for future work rather than primary results. CATE distributions by moderator tercile are shown in Figures 7a and 7b below. (Note that none of the tercile differences are statistically distinguishable from zero with formal BLP inference.)
 
 **Gender and employment under the cleanest treatment contrast.** When the analysis is restricted to full-treatment versus comparison schools, the BLP on employment shows a female coefficient of +0.41 (p = 0.03) and an age-times-female interaction of -0.03 (p = 0.03). The direction is consistent with the competing-demands hypothesis: childhood deworming increased employment more for women, concentrated among those who were youngest at treatment. The estimated differential treatment effect by gender is 41 percentage points: conditional on age, childhood deworming is estimated to increase employment by 41 percentage points more for women than for men. Both signals are absent in the pooled sample and rely on 50 schools and 3,406 employment observations, roughly two-thirds of the pooled sample, making these specification-dependent results. They do not warrant a policy recommendation on their own, but they suggest that a larger, better-powered study examining gender-differentiated labor market effects would be worth running.
 
 **Underweight age gradient across all specifications.** The BLP coefficient on age at treatment for underweight prevalence is consistently negative across the pooled analysis, the full-treatment-only analysis, and the complete-case analysis (p = 0.12-0.13 in all three). A consistently negative coefficient means that children who were younger at treatment show lower adult underweight prevalence, the direction predicted by the developmental-window hypothesis for nutritional outcomes. This pattern never reaches conventional significance but its consistency across specifications that use different samples and make different imputation choices is the most stable directional signal in the project. A study with larger cluster counts would be well-positioned to test this hypothesis with adequate power.
 
-**Education under the cleanest treatment contrast.** Full-treatment versus comparison schools shows a positive education ATE of +0.29 years (p = 0.015 uncorrected; note this is a subsample analysis not factored into the pre-specified Romano-Wolf correction, n = 1,909). This result is absent in the pooled sample and relies on a subsample of 50 schools with wide standard errors, so it should be treated as potentially reflecting sampling variability. We note it because it is in the expected direction and the magnitude (roughly one additional third of a year of schooling) is consistent with what the long-run returns literature would predict from an effective early health intervention.
+**Education under the cleanest treatment contrast.** Full-treatment versus comparison schools shows a positive education ATE of +0.29 years (p = 0.015 uncorrected; note this is a subsample analysis not factored into the pre-specified Romano-Wolf correction, n = 1,909). This result is absent in the pooled sample and relies on a subsample of 50 schools with wide standard errors, so it should be treated as potentially reflecting sampling variability. We note it here because it is in the expected direction and the magnitude (roughly one additional third of a year of schooling) appears consistent with what the long-run returns literature would predict from an effective early health intervention.
+
+![Figure 7a](figures/fig7a_cate_tercile_bmi_uw.png)
+![Figure 7b](figures/fig7b_cate_tercile_educ_emp.png)
 
 ---
 
 ## Limitations
 
-** **
-The estimates throughout are intention-to-treat effects of school assignment to deworming, not effects of deworming receipt. Compliance varied across schools, while spillovers from treated to neighboring comparison schools mean that comparison-group pupils were not entirely unexposed to the intervention.
+We see several limitations present in this analysis that go beyond the first-order constraints discussed in the main body of the write-up.
 
-** **
-Without baseline health data for the comparison group (stool examination and hemoglobin data are available only for treatment schools), we cannot decompose the total effect into health-mediated versus education-mediated pathways. The finding of a negative age gradient on underweight prevalence is consistent with a critical-period mechanism operating through early nutritional improvement, but we cannot rule out alternative pathways operating through schooling quality, peer effects, or labor market entry timing.
+**Intention to treat versus treatment on the treated.** The estimates throughout are intention-to-treat effects of school assignment to deworming, not effects of deworming receipt. Compliance varied across schools, while spillovers from treated to neighboring comparison schools mean that comparison-group pupils were not entirely unexposed to the intervention.
 
-** **
-The KLPS was designed primarily to measure long-run economic outcomes, not to serve as a heterogeneity study. Adult anthropometric outcomes were added to a survey with a different primary focus and the sample was not powered for them. A study designed from the outset to detect nutritional heterogeneity by age and gender would require substantially larger cluster counts than the 73 schools available here.
+**Heath versus education pathway.** Without baseline health data for the comparison group (stool examination and hemoglobin data are available only for treatment schools), we cannot decompose the total effect into health-mediated versus education-mediated pathways. The finding of a negative age gradient on underweight prevalence is consistent with a critical-period mechanism operating through early nutritional improvement, but we cannot rule out alternative pathways operating through schooling quality, peer effects, or labor market entry timing.
+
+**KLPS's primary focus and sample size constraints.**
+Later instalments of the KLPS were designed primarily to measure long-run economic outcomes, not to serve as a heterogeneity study. Adult anthropometric outcomes were added to a survey with a different primary focus and the sample is not powered to pick up meaningful effects in that domain. A study designed from the outset to detect nutritional heterogeneity by age and gender would require substantially larger cluster counts than the 73 schools available here.
 
 ---
 
@@ -142,7 +142,6 @@ The KLPS was designed primarily to measure long-run economic outcomes, not to se
 **Intergenerational effects.** The KLPS-4 Kids modules contain cognitive assessments, teacher evaluations, and birthweight data for the children of original PSDP respondents. These open a natural extension to intergenerational effects: did childhood deworming affect the next generation? The heterogeneity framework developed here is directly suited to that question: who among the original respondents transmitted the largest gains to the next generation, and whether the age-at-treatment gradient persists into the intergenerational channel.
 
 **Bayesian hierarchical nuisance models.** A fully Bayesian hierarchical specification of the nuisance functions — placing a prior over school-level random effects and propagating posterior uncertainty through the orthogonal scores — is the natural next step beyond the MixedLM sensitivity check reported above. In this dataset, however, the MixedLM results make a material difference unlikely: residual ICC is nearly identical under partial pooling (0.027) and flat nuisance models (0.030), and substantive conclusions are unchanged. The Bayesian extension would be more consequential in settings with higher residual ICC, stronger school-level treatment effect heterogeneity, or fewer clusters than the 73 available here — conditions under which the frequentist partial pooling approximation would be less reliable. For a worked treatment of Bayesian hierarchical shrinkage in a related heterogeneity context, see the companion [bayesian-segmentation](https://github.com/ruschenpohler/bayesian-segmentation) repository.
-
 
 ---
 
