@@ -1,4 +1,6 @@
-# Who Benefits From Childhood Deworming? Heterogeneous Treatment Effects by Age and Gender on Long-Run Human Capital and Labor Market Outcomes.
+# Who Benefits From Childhood Deworming? Heterogeneous Treatment Effects by Age and Gender on Long-Run Human Capital and Labor Market Outcomes
+
+Note: This project was implemented using the [ML Platform for Trustworthy Human-Agent Research Production](https://github.com/ruschenpohler/agent-ml-platform-wp).
 
 ---
 
